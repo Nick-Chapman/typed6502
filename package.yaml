@@ -42,7 +42,9 @@ default-extensions:
 - NamedFieldPuns
 - NondecreasingIndentation
 - NumericUnderscores
+- QualifiedDo
 - RankNTypes
+- RecursiveDo
 - ScopedTypeVariables
 - TypeApplications
 - TypeFamilies

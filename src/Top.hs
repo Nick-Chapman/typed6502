@@ -1,7 +1,4 @@
 
-{-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE RebindableSyntax #-}
-
 module Top (main,prog1,prog2) where
 
 import Asm
@@ -14,7 +11,7 @@ main = do
 data Counter
 
 prog1 :: Generated ('E ('S a x y s) ('S ('Value Counter) x y s))
-prog1 = assemble $ mdo
+prog1 = assemble $ Asm.mdo
   vCounter <- allocateZP @('Value Counter)
   jmp main
 
@@ -35,7 +32,7 @@ prog1 = assemble $ mdo
 
 
 prog2 :: Generated ('E ('S a x y s) ('S a y x s))
-prog2 = assemble $ mdo
+prog2 = assemble $ Asm.mdo
   jsr swapXY
   halt
 

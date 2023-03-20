@@ -4,7 +4,7 @@
 module Asm
   ( Asm, assemble, Generated
   , Asm0, VAL(..) , STACK(..), STATE(..), EFFECT(..), TRANS(..), FALL(..)
-  , pure, (>>=), (>>), return, mfix
+  , pure, (>>=), (>>), return, mfix, fail
   , halt
   , nop, inc
   , MemAddr, labelData, equb, ldaM, staM
@@ -21,7 +21,7 @@ module Asm
   -- TODO: addressing mode: M,x  M,y  (Z,x)  (Z),y
   ) where
 
-import Prelude hiding (pure,(>>=),(>>),return)
+import Prelude hiding (pure,(>>=),(>>),return,fail)
 import Data.Kind (Type)
 import Data.Word (Word8)
 
@@ -61,6 +61,8 @@ return :: v -> Asm0 e v
   -> Asm enter ('T e1 e3) leave v2
 
 mfix :: (v -> Asm f1 e f2 v) -> Asm f1 e f2 v
+
+fail :: Asm b t a v
 
 halt :: Asm 'Fall ('T ('E s s) e_ignored) 'Break ()
 
@@ -158,7 +160,7 @@ return = pure
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
 
 (   assemble
-  , pure, (>>=), mfix
+  , pure, (>>=), mfix, fail
   , halt, nop, inc
   , immediate
   , allocateZP
