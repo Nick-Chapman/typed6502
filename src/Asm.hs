@@ -22,11 +22,12 @@ module Asm
   ) where
 
 import Prelude hiding (pure,(>>=),(>>),return)
+import Data.Kind (Type)
 import Data.Word (Word8)
 
 data Generated (e :: EFFECT)
 
-data VAL = Value * | ReturnAddr EFFECT
+data VAL = Value Type | ReturnAddr EFFECT
 data STACK = Cons { _head :: VAL, _tail :: STACK } -- no NIL
 
 data STATE = S { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
@@ -34,7 +35,7 @@ data EFFECT = E { _pre :: STATE, _post :: STATE }
 data TRANS = T { _withMe :: EFFECT, _afterMe :: EFFECT }
 data FALL = Fall | Break
 
-data Asm (enter :: FALL) (trans :: TRANS) (leave :: FALL) (v :: * )
+data Asm (enter :: FALL) (trans :: TRANS) (leave :: FALL) (v :: Type)
 
 data MemAddr (v :: VAL)
 data JumpDest (e :: EFFECT)

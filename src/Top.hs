@@ -15,7 +15,7 @@ data Counter
 
 prog1 :: Generated ('E ('S a x y s) ('S ('Value Counter) x y s))
 prog1 = assemble $ mdo
-  vCounter <- allocateZP @ ('Value Counter)
+  vCounter <- allocateZP @('Value Counter)
   jmp main
 
   getCounter <- labelCode
