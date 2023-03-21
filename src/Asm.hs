@@ -2,14 +2,14 @@
 -- Typed 6502 assembly
 
 module Asm
-  ( Asm, assemble, Generated
-  , Asm0, VAL(..) , STACK(..), STATE(..), EFFECT(..), TRANS(..), FALL(..)
+  ( Asm, assemble, Bytes
+  , VAL(..), STACK(..), CPU(..), GENERATED(..), State
   , pure, (>>=), (>>), return, mfix, fail
   , halt
   , nop, inc
   , MemAddr, labelData, equb, ldaM, staM
   , JumpDest, labelCode, jmp, beq
-  , ZeroPage, allocateZP, ldaZP, staZP
+  , ZeroPage, allocateZP, ldaZ, staZ
   , Immediate, immediate, ldaI
   , tax, txa, tay, tya
   , pha, pla
@@ -25,135 +25,88 @@ import Prelude hiding (pure,(>>=),(>>),return,fail)
 import Data.Kind (Type)
 import Data.Word (Word8)
 
-data Generated (e :: EFFECT)
+data Bytes
 
-data VAL = Value Type | ReturnAddr EFFECT
-data STACK = Cons { _head :: VAL, _tail :: STACK } -- no NIL
+assemble :: Asm ('Code c) 'NotExecutable () -> Bytes
 
-data STATE = S { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
-data EFFECT = E { _pre :: STATE, _post :: STATE }
-data TRANS = T { _withMe :: EFFECT, _afterMe :: EFFECT }
-data FALL = Fall | Break
+data VAL = Value Type | ReturnAddr CPU
+data STACK = Cons { _head :: VAL, _tail :: STACK }
+data CPU = Cpu { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
+data GENERATED = NotExecutable | Code { _cpu :: CPU }
 
-data Asm (enter :: FALL) (trans :: TRANS) (leave :: FALL) (v :: Type)
+data Asm ( _pre :: GENERATED) ( _post :: GENERATED) v
 
 data MemAddr (v :: VAL)
-data JumpDest (e :: EFFECT)
+data JumpDest (s :: CPU)
 data ZeroPage (v :: VAL)
 data Immediate (v :: VAL)
 data Flags
 
-type Asm0 e v = Asm 'Fall ('T e e) 'Fall v -- no tracked effect
+pure :: v -> Asm g g v
+return :: v -> Asm g g v
 
-assemble :: Asm 'Fall ('T e e_ignored) 'Break () -> Generated e
-
-pure :: v -> Asm0 e v
-return :: v -> Asm0 e v
+mfix :: (v -> Asm g1 g2 v) -> Asm g1 g2 v
+fail :: Asm g1 g2 v
 
 (>>=)
-  :: Asm enter ('T e1 e2) fallthrough v1
-  -> (v1 -> Asm fallthrough ('T e2 e3) leave v2)
-  -> Asm enter ('T e1 e3) leave v2
+  :: Asm g1 g2 v1
+  -> (v1 -> Asm g2 g3 v2)
+  -> Asm g1 g3 v2
 
 (>>)
-  :: Asm enter ('T e1 e2) fallthrough ()
-  -> Asm fallthrough ('T e2 e3) leave v2
-  -> Asm enter ('T e1 e3) leave v2
+  :: Asm g1 g2 ()
+  -> Asm g2 g3 v2
+  -> Asm g1 g3 v2
 
-mfix :: (v -> Asm f1 e f2 v) -> Asm f1 e f2 v
-
-fail :: Asm b t a v
-
-halt :: Asm 'Fall ('T ('E s s) e_ignored) 'Break ()
-
-nop :: Asm0 e ()
-inc :: Asm0 e ()
+halt :: Asm ('Code c) 'NotExecutable ()
 
 immediate :: Word8 -> Immediate v
-allocateZP :: forall v e. Asm0 e (ZeroPage v)
-labelData :: forall v e. Asm 'Break ('T e e) 'Break (MemAddr v)
-labelCode ::             Asm allowNoDrop ('T e e) 'Fall (JumpDest e)
+allocateZP :: forall v p. Asm p p (ZeroPage v)
 
-equb :: Word8 -> Asm 'Break t_whoKnows 'Break ()
+labelData :: Asm 'NotExecutable 'NotExecutable (MemAddr v)
+labelCode :: Asm g ('Code c) (JumpDest c)
 
-jmp :: JumpDest e -> Asm 'Fall ('T e e_ignored) 'Break ()
+equb :: Word8 -> Asm 'NotExecutable 'NotExecutable ()
 
-beq :: JumpDest e -> Asm 'Fall ('T e e) 'Break ()
+jmp :: JumpDest c -> Asm ('Code c) 'NotExecutable ()
+beq :: JumpDest c -> Asm ('Code c) ('Code c) ()
 
-
-ldaI :: Immediate a
-     -> Asm 'Fall ('T ('E ('S o x y s) end)
-                      ('E ('S a x y s) end)
-                  ) 'Fall ()
-
-ldaZP :: ZeroPage (a :: VAL)
-     -> Asm 'Fall ('T ('E ('S o x y s) end)
-                      ('E ('S a x y s) end)
-                  ) 'Fall ()
-
-ldaM :: MemAddr (a :: VAL)
-     -> Asm 'Fall ('T ('E ('S o x y s) end)
-                      ('E ('S a x y s) end)
-                  ) 'Fall ()
-
-staZP :: ZeroPage (a :: VAL)
-     -> Asm 'Fall ('T ('E ('S a x y s) end)
-                      ('E ('S a x y s) end)
-                  ) 'Fall ()
-
-staM :: MemAddr (a :: VAL)
-     -> Asm 'Fall ('T ('E ('S a x y s) end)
-                      ('E ('S a x y s) end)
-                  ) 'Fall ()
+nop :: Asm ('Code c) ('Code c) ()
+inc :: Asm ('Code c) ('Code c) ()
 
 
-tax :: Asm 'Fall ('T ('E ('S a x y s) end)
-                     ('E ('S a a y s) end)
-                 ) 'Fall ()
+type State (a::VAL) (x::VAL) (y::VAL) (s::STACK) = 'Code ('Cpu a x y s)
 
-txa :: Asm 'Fall ('T ('E ('S a x y s) end)
-                     ('E ('S x x y s) end)
-                 ) 'Fall ()
+ldaI :: Immediate a         -> Asm (State o x y s) (State a x y s) ()
+ldaZ :: ZeroPage (a :: VAL) -> Asm (State o x y s) (State a x y s) ()
+ldaM :: MemAddr  (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
-tay :: Asm 'Fall ('T ('E ('S a x y s) end)
-                     ('E ('S a x a s) end)
-                 ) 'Fall ()
+staZ :: ZeroPage (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
+staM :: MemAddr  (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
-tya :: Asm 'Fall ('T ('E ('S a x y s) end)
-                     ('E ('S y x y s) end)
-                 ) 'Fall ()
+tax :: Asm (State a x y s) (State a a y s) ()
+tay :: Asm (State a x y s) (State a x a s) ()
+txa :: Asm (State a x y s) (State x x y s) ()
+tya :: Asm (State a x y s) (State y x y s) ()
 
+pha :: Asm (State a x y s)
+           (State a x y ('Cons a s)) ()
 
-pha :: Asm 'Fall ('T ('E ('S a x y          s)  end)
-                     ('E ('S a x y ('Cons a s)) end)
-                  ) 'Fall ()
+pla :: Asm (State o x y ('Cons a s))
+           (State a x y s) ()
 
-pla :: Asm 'Fall ('T ('E ('S o x y ('Cons a s)) end)
-                     ('E ('S a x y          s ) end)
-                  ) 'Fall ()
+php :: Asm (State a x y s)
+           (State a x y ('Cons ('Value Flags) s)) ()
 
-php :: Asm 'Fall ('T ('E ('S a x y                       s)  end)
-                     ('E ('S a x y ('Cons ('Value Flags) s)) end)
-                  ) 'Fall ()
+plp :: Asm (State a x y ('Cons ('Value Flags) s))
+           (State a x y s) ()
 
-plp :: Asm 'Fall ('T ('E ('S a x y ('Cons ('Value Flags) s)) end)
-                     ('E ('S a x y                       s)  end)
-                  ) 'Fall ()
+jsr :: JumpDest ('Cpu a1 x1 y1 ('Cons ('ReturnAddr ('Cpu a2 x2 y2 s2)) s1))
+    -> Asm (State a1 x1 y1 s1)
+           (State a2 x2 y2 s2) ()
 
-jsr :: JumpDest
-       ('E ('S a x y ('Cons ('ReturnAddr ('E ret end)) s))
-           ret)
-    -> Asm 'Fall ('T ('E ('S a x y s) end)
-                     ('E ret end)
-                 ) 'Fall ()
-
-
-rts :: Asm 'Fall ('T ('E ('S a x y
-                          ('Cons ('ReturnAddr ('E ('S a x y s) end)) s)
-                         ) end)
-                     e_ignored
-                 ) 'Break ()
-
+rts :: Asm (State a x y ('Cons ('ReturnAddr ('Cpu a x y s)) s))
+           'NotExecutable ()
 
 
 return = pure
@@ -168,8 +121,7 @@ return = pure
   , labelCode
   , equb
   , jmp, beq
-  , ldaI, ldaZP, ldaM
-  , staZP, staM
+  , ldaI, ldaZ, ldaM, staZ, staM
   , tax, txa, tay, tya
   , pha, pla
   , php, plp
