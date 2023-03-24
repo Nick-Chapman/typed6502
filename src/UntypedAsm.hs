@@ -4,9 +4,9 @@ module UntypedAsm
   , pure, (>>=), (>>), return, mfix, fail
   , allocateZP, label
   , equb, equs
-  , lda_i_char, lda_i, lda_my, ldy_i
+  , lda_i_char, lda_i, lda_iy, lda_iiy, ldy_i
   , sta_z
-  , jsr, jmp
+  , jmp, jsr, rts
   , beq, bne
   , iny
   , lo, hi
@@ -43,13 +43,15 @@ equs :: String -> Asm ()
 
 lda_i :: Word8 -> Asm ()
 lda_i_char :: Char -> Asm ()
-lda_my :: Word16 -> Asm ()
+lda_iy :: Word16 -> Asm ()
+lda_iiy :: Word8 -> Asm ()
 ldy_i :: Word8 -> Asm ()
 
 sta_z :: Word8 -> Asm ()
 
-jsr :: Word16 -> Asm ()
 jmp :: Word16 -> Asm ()
+jsr :: Word16 -> Asm ()
+rts :: Asm ()
 
 beq :: Word16 -> Asm ()
 bne :: Word16 -> Asm ()
@@ -76,13 +78,15 @@ equs str = Emit (map c2w str)
 
 lda_i b = Emit [0xa9, b]
 lda_i_char c = Emit [0xa9, c2w c]
-lda_my a = Emit [0xb9, lo a, hi a]
+lda_iy a = Emit [0xb9, lo a, hi a]
+lda_iiy b = Emit [0xb1, b]
 ldy_i b = Emit [0xa0, b]
 
 sta_z b = Emit [0x85, b]
 
-jsr a = Emit [0x20, lo a, hi a]
 jmp a = Emit [0x4c, lo a, hi a]
+jsr a = Emit [0x20, lo a, hi a]
+rts = Emit [0x60]
 
 beq = branch 0xf0
 bne = branch 0xd0

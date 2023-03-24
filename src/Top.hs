@@ -7,8 +7,9 @@ import Text.Printf (printf)
 import qualified UntypedAsm as Asm (writeBytes)
 
 import qualified CharX
-import qualified Goodbye
 import qualified Hello
+import qualified Goodbye
+import qualified Greetings
 
 main :: IO ()
 main = do
@@ -29,5 +30,6 @@ example = \case
   "CharX" -> CharX.code
   "Hello" -> Hello.code
   "Goodbye" -> Goodbye.code
+  "Greetings" -> Greetings.code
   name ->
     error $ printf "unexpected example: %s\n" name
