@@ -7,7 +7,7 @@ addr = &70
 
 .start:
     jmp main
-.mytext EQUS "Hello world!", 13, 0
+.mytext EQUS "Goodbye!", 13, 0
 .main:
     ;;lda #LO(mytext) : sta addr
     ;;lda #HI(mytext) : sta addr+1

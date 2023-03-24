@@ -13,7 +13,7 @@ code = assemble 0x2000 $ Asm.mdo
   jmp main
 
   mytext <- label
-  equs "Hello world!\r"; equb [0]
+  equs "Goodbye!\r"; equb [0]
 
   main <- label
   --lda_i (lo mytext) ; sta_z addr

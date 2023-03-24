@@ -28,6 +28,6 @@ _build/%-beebasm.bytes: asm/%.asm Makefile
 	@ echo 'Compiling $< (using beebasm) --> $@'
 	@ beebasm -i $< -o $@ || rm $@
 
-_build/%-haskell.bytes: src/*.hs Makefile
+_build/%-haskell.bytes: src/*.hs example/*.hs Makefile
 	@ echo 'Generating (using Haskell) --> $@'
 	@ stack run -- $* $@
