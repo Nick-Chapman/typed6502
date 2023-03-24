@@ -2,8 +2,9 @@
 module UntypedAsm
   ( Asm, assemble
   , pure, (>>=), (>>), return, mfix, fail
+  , Immediate, ZeroPage, MemAddr
   , allocateZP, label, lo, hi
-  , equb, equs
+  , equb, equs, immediate
   , lda_i_char, lda_i, lda_iy, lda_iiy, ldy_i
   , sta_z
   , jmp, jsr, rts
@@ -23,24 +24,26 @@ pure :: v -> Asm v
 (>>) :: Asm () -> Asm v2 -> Asm v2
 fail :: Asm v
 mfix :: (v -> Asm v) -> Asm v
-allocateZP :: Asm Word8
-label :: Asm Word16
-lo :: Word16 -> Word8
-hi :: Word16 -> Word8
+allocateZP :: Asm ZeroPage
+label :: Asm MemAddr
+lo :: MemAddr -> Immediate
+hi :: MemAddr -> Immediate
 equb :: [Word8] -> Asm ()
 equs :: String -> Asm ()
-lda_i :: Word8 -> Asm ()
+immediate :: Word8 -> Immediate
+lda_i :: Immediate -> Asm ()
 lda_i_char :: Char -> Asm ()
-lda_iy :: Word16 -> Asm ()
-lda_iiy :: Word8 -> Asm ()
+lda_iy :: MemAddr -> Asm ()
+lda_iiy :: ZeroPage -> Asm ()
 ldy_i :: Word8 -> Asm ()
-sta_z :: Word8 -> Asm ()
-jmp :: Word16 -> Asm ()
-jsr :: Word16 -> Asm ()
+sta_z :: ZeroPage -> Asm ()
+jmp :: MemAddr -> Asm ()
+jsr :: MemAddr -> Asm ()
 rts :: Asm ()
-beq :: Word16 -> Asm ()
-bne :: Word16 -> Asm ()
+beq :: MemAddr -> Asm ()
+bne :: MemAddr -> Asm ()
 iny :: Asm ()
+
 
 return = pure
 pure = Pure
@@ -48,25 +51,34 @@ pure = Pure
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
 fail = error "UntypedAsm.fail"
 mfix = Mfix
-allocateZP = AllocateZP
-label = Label
-lo w = fromIntegral (w .&. 0xff)
-hi w = fromIntegral (w `shiftR` 8)
+allocateZP = AllocateZP >>= \b -> pure (ZeroPage b)
+label = Label >>= \a -> pure (MemAddr a)
+lo (MemAddr a) = Immediate (loByte a)
+hi (MemAddr a) = Immediate (hiByte a)
 equb = Emit
 equs str = Emit (map c2w str)
-lda_i b = Emit [0xa9, b]
+immediate = Immediate
+lda_i (Immediate b) = Emit [0xa9, b]
 lda_i_char c = Emit [0xa9, c2w c]
-lda_iy a = Emit [0xb9, lo a, hi a]
-lda_iiy b = Emit [0xb1, b]
+lda_iy (MemAddr a) = Emit [0xb9, loByte a, hiByte a]
+lda_iiy (ZeroPage b) = Emit [0xb1, b]
 ldy_i b = Emit [0xa0, b]
-sta_z b = Emit [0x85, b]
-jmp a = Emit [0x4c, lo a, hi a]
-jsr a = Emit [0x20, lo a, hi a]
+sta_z (ZeroPage b) = Emit [0x85, b]
+jmp (MemAddr a) = Emit [0x4c, loByte a, hiByte a]
+jsr (MemAddr a) = Emit [0x20, loByte a, hiByte a]
 rts = Emit [0x60]
 beq = branch 0xf0
 bne = branch 0xd0
 iny = Emit [0xc8]
 
-branch :: Word8 -> Word16 -> Asm ()
-branch opcode a =
+branch :: Word8 -> MemAddr -> Asm ()
+branch opcode (MemAddr a) =
   Label >>= \here -> Emit [opcode, fromIntegral (a - here - 2) ]
+
+data Immediate = Immediate Word8
+newtype ZeroPage = ZeroPage Word8 deriving (Num)
+newtype MemAddr = MemAddr Word16 deriving (Num)
+
+loByte,hiByte :: Word16 -> Word8
+loByte a = fromIntegral (a .&. 0xff)
+hiByte a = fromIntegral (a `shiftR` 8)

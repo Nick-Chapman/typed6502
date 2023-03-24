@@ -2,7 +2,7 @@
 module Greetings (code) where
 
 import UntypedAsm as Asm
-import Data.Word (Word8,Word16)
+import Data.Word (Word8)
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
@@ -36,7 +36,7 @@ code = assemble 0x2000 $ Asm.mdo
     osasci = 0xffe3
 
 
-copy16i :: Word16 -> Word8 -> Asm ()
+copy16i :: MemAddr -> ZeroPage -> Asm ()
 copy16i a v = Asm.do
   lda_i (lo a) ; sta_z v
   lda_i (hi a) ; sta_z (v+1)
