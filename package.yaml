@@ -56,7 +56,7 @@ ghc-options:
 - -Wno-name-shadowing
 
 library:
-  source-dirs: src
+  source-dirs: [src, example]
 
 executables:
   main.exe:

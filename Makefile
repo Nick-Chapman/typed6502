@@ -30,5 +30,5 @@ _build/%-beebasm.bytes: asm/%.asm Makefile
 
 _build/%-haskell.bytes: src/*.hs Makefile
 	@ echo 'Generating (using Haskell) --> $@'
-	@ stack run -- $@
+	@ stack run -- $* $@
 
