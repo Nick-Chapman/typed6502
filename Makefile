@@ -28,6 +28,11 @@ _build/%-beebasm.bytes: asm/%.asm Makefile
 	@ echo 'Compiling $< (using beebasm) --> $@'
 	@ beebasm -i $< -o $@ || rm $@
 
-_build/%-haskell.bytes: src/*.hs example/*.hs Makefile
+exe = .stack-work/dist/x86_64-linux/Cabal-3.6.3.0/build/main.exe/main.exe
+
+_build/%-haskell.bytes: $(exe) Makefile
 	@ echo 'Generating (using Haskell) --> $@'
-	@ stack run -- $* $@
+	@ $(exe) $* $@
+
+$(exe): src/*.hs example/*.hs Makefile
+	stack build; touch $(exe)
