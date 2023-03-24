@@ -1,6 +1,6 @@
 
 module UntypedAsm
-  ( Asm, assemble, writeBytes
+  ( Asm, assemble
   , pure, (>>=), (>>), return, mfix, fail
   , allocateZP, label
   , equb, equs
@@ -17,14 +17,6 @@ import Prelude hiding (pure,(>>=),(>>),return,fail)
 import Data.Bits (shiftR,(.&.))
 import Data.ByteString.Internal (c2w)
 import Data.Word (Word8,Word16)
-import Text.Printf (printf)
-import qualified Data.ByteString as ByteString (pack,writeFile)
-
-writeBytes :: FilePath -> [Word8] -> IO ()
-writeBytes path bs = do
-  printf "writeBytes (#%d) --> %s\n" (length bs) path
-  ByteString.writeFile path (ByteString.pack bs)
-
 
 -- interface
 

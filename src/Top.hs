@@ -4,7 +4,7 @@ module Top (main) where
 import Data.Word (Word8)
 import System.Environment (getArgs)
 import Text.Printf (printf)
-import qualified UntypedAsm as Asm (writeBytes)
+import qualified Data.ByteString as ByteString (pack,writeFile)
 
 import qualified CharX
 import qualified Hello
@@ -15,7 +15,7 @@ main :: IO ()
 main = do
   args <- getArgs
   let Config{name,output} = parse args
-  Asm.writeBytes output (example name)
+  writeBytes output (example name)
 
 data Config = Config { name :: String, output :: FilePath }
 
@@ -33,3 +33,8 @@ example = \case
   "Greetings" -> Greetings.code
   name ->
     error $ printf "unexpected example: %s\n" name
+
+writeBytes :: FilePath -> [Word8] -> IO ()
+writeBytes path bs = do
+  printf "writeBytes (#%d) --> %s\n" (length bs) path
+  ByteString.writeFile path (ByteString.pack bs)
