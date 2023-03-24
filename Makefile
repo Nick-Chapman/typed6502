@@ -1,5 +1,5 @@
 
-examples = charx hello goodbye
+examples = $(patsubst example/%.hs, %, $(wildcard example/*.hs))
 
 beebasm_bytes = $(patsubst %, _build/%-beebasm.bytes, $(examples))
 haskell_bytes = $(patsubst %, _build/%-haskell.bytes, $(examples))
@@ -31,4 +31,3 @@ _build/%-beebasm.bytes: asm/%.asm Makefile
 _build/%-haskell.bytes: src/*.hs Makefile
 	@ echo 'Generating (using Haskell) --> $@'
 	@ stack run -- $* $@
-

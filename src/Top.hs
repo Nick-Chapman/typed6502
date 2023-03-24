@@ -26,8 +26,8 @@ parse = \case
 
 example :: String -> [Word8]
 example = \case
-  "charx" -> CharX.code
-  "hello" -> Hello.code
-  "goodbye" -> Goodbye.code
+  "CharX" -> CharX.code
+  "Hello" -> Hello.code
+  "Goodbye" -> Goodbye.code
   name ->
     error $ printf "unexpected example: %s\n" name
