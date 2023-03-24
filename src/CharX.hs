@@ -1,7 +1,7 @@
 
 module CharX (code) where
 
-import Asm
+import UntypedAsm as Asm
 import Data.Word (Word8)
 
 code :: [Word8]

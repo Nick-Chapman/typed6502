@@ -1,8 +1,8 @@
 
 module Top (main) where
 
-import Asm (writeBytes)
 import System.Environment (getArgs)
+import qualified UntypedAsm as Asm (writeBytes)
 
 import qualified CharX (code)
 import qualified Hello (code)
@@ -10,7 +10,7 @@ import qualified Hello (code)
 main :: IO ()
 main = do
   [filename] <- getArgs
-  writeBytes filename (codeFor filename)
+  Asm.writeBytes filename (codeFor filename)
   where
     codeFor = \case
       "_build/charx.haskell-bytes" -> CharX.code

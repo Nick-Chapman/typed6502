@@ -1,5 +1,5 @@
 
-module Asm
+module UntypedAsm
   ( Asm, assemble, writeBytes
   , pure, (>>=), (>>), return, mfix, fail
   , equbs
