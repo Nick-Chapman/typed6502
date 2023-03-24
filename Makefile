@@ -1,32 +1,34 @@
 
-top: build-all view-charx
+examples = charx hello goodbye
 
-view-charx:
-	hd _build/hello.beebasm-bytes
-	hd _build/hello.haskell-bytes
+beebasm_bytes = $(patsubst %, _build/%-beebasm.bytes, $(examples))
+haskell_bytes = $(patsubst %, _build/%-haskell.bytes, $(examples))
 
-examples = charx hello
+top: diff
 
-beebasm_bytes = $(patsubst %, _build/%.beebasm-bytes, $(examples))
-haskell_bytes = $(patsubst %, _build/%.haskell-bytes, $(examples))
+all: $(beebasm_bytes) $(haskell_bytes)
 
-build-all: $(beebasm_bytes) $(haskell_bytes)
+diff: $(patsubst %, diff-%, $(examples))
 
-run-%: _build/%.ssd
+diff-%: _build/%-beebasm.bytes _build/%-haskell.bytes
+	@ echo $@
+	@ ./hexdiff.sh $^
+
+run-%: _build/%-haskell.ssd
 	b-em $<
 
-#Assembler=beebasm
-Assembler=haskell
+ref-run-%: _build/%-beebasm.ssd
+	b-em $<
 
-_build/%.ssd: _build/%.$(Assembler)-bytes wrap.asm Makefile
+_build/%.ssd: _build/%.bytes wrap.asm Makefile
 	@ echo 'Wrapping $< as disc-image: $@'
 	@ beebasm -S BinFile=$< -i wrap.asm -do $@ -boot Code || rm $@
 
-_build/%.beebasm-bytes: asm/%.asm Makefile
+_build/%-beebasm.bytes: asm/%.asm Makefile
 	@ echo 'Compiling $< (using beebasm) --> $@'
 	@ beebasm -i $< -o $@ || rm $@
 
-_build/%.haskell-bytes: src/*.hs Makefile
+_build/%-haskell.bytes: src/*.hs Makefile
 	@ echo 'Generating (using Haskell) --> $@'
 	@ stack run -- $@
 
