@@ -10,6 +10,7 @@ import qualified CharX
 import qualified Hello
 import qualified Goodbye
 import qualified Greetings
+import qualified Frame
 
 main :: IO ()
 main = do
@@ -31,6 +32,7 @@ example = \case
   "Hello" -> Hello.code
   "Goodbye" -> Goodbye.code
   "Greetings" -> Greetings.code
+  "Frame" -> Frame.code
   name ->
     error $ printf "unexpected example: %s\n" name
 

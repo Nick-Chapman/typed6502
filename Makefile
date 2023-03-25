@@ -1,7 +1,8 @@
 
 examples = $(patsubst example/%.hs, %, $(wildcard example/*.hs))
+asm_examples = $(patsubst asm/%.asm, %, $(wildcard asm/*.asm))
 
-beebasm_bytes = $(patsubst %, _build/%-beebasm.bytes, $(examples))
+beebasm_bytes = $(patsubst %, _build/%-beebasm.bytes, $(asm_examples))
 haskell_bytes = $(patsubst %, _build/%-haskell.bytes, $(examples))
 
 top: diff
