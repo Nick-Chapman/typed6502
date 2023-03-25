@@ -24,26 +24,26 @@ code = assemble 0x2000 $ Asm.mdo
   frameCount <- label; equb [0]
 
   _mos_syncVB <- label
-  lda_i 19
+  lda @Word8 19
   jmp osbyte
   --rts -- TODO: detect bug
 
   _mode1 <- label
-  lda_i 22 ; jsr oswrch
-  lda_i 1 ; jsr oswrch
+  lda @Word8 22 ; jsr oswrch
+  lda @Word8 1 ; jsr oswrch
   rts
 
   _cursorOff <- label
-  lda_i 23 ; jsr oswrch
-  lda_i 1 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
-  lda_i 0 ; jsr oswrch
+  lda @Word8 23 ; jsr oswrch
+  lda @Word8 1 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
+  lda @Word8 0 ; jsr oswrch
   rts
 
   printMessage <- makePrintMessage msgPtr
@@ -55,7 +55,7 @@ code = assemble 0x2000 $ Asm.mdo
 
   loop <- label
   jsr _mos_syncVB
-  position 1 1; puts "Frame : "; lda_m frameCount; jsr printHexA
+  position 1 1; puts "Frame : "; lda frameCount; jsr printHexA
   inc_m frameCount
   jmp loop
 
@@ -66,17 +66,17 @@ code = assemble 0x2000 $ Asm.mdo
 makePrintHexA :: Asm MemAddr
 makePrintHexA = Asm.mdo
   entry <- label
-  pha ; lda_i_char '['; jsr osasci; pla
+  pha ; lda '['; jsr osasci; pla
   pha
   and_i 0xf0
   lsr_a; lsr_a; lsr_a; lsr_a; tax
-  lda_mx (IndexedX digits)
+  lda (IndexedX digits)
   jsr osasci
   pla
   and_i 0x0f; tax
-  lda_mx (IndexedX digits)
+  lda (IndexedX digits)
   jsr osasci
-  pha; lda_i_char ']'; jsr osasci; pla
+  pha; lda ']'; jsr osasci; pla
   rts
   digits <- label
   equs "0123456789abcdef"
@@ -87,7 +87,7 @@ makePrintMessage msgPtr = Asm.mdo
   entry <- label
   ldy_i 0
   loop <- label
-  lda_iiy (IndirectY msgPtr)
+  lda (IndirectY msgPtr)
   beq done
   jsr osasci
   iny
@@ -98,14 +98,14 @@ makePrintMessage msgPtr = Asm.mdo
 
 position :: Word8 -> Word8 -> Asm ()
 position x y = Asm.do
-  lda_i 31; jsr osasci
-  lda_i x; jsr osasci
-  lda_i y; jsr osasci
+  lda @Word8 31; jsr osasci
+  lda x; jsr osasci
+  lda y; jsr osasci
 
 copy16i :: MemAddr -> ZeroPage -> Asm ()
 copy16i a v = Asm.do
-  lda_i (lo a) ; sta_z v
-  lda_i (hi a) ; sta_z (v+1)
+  lda (lo a) ; sta_z v
+  lda (hi a) ; sta_z (v+1)
 
 osasci,oswrch,osbyte :: MemAddr
 osasci = 0xffe3

@@ -8,12 +8,12 @@ code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
   jmp main
   main <- label
-  lda_i_char 'H'; jsr osasci
-  lda_i_char 'e'; jsr osasci
-  lda_i_char 'l'; jsr osasci; jsr osasci
-  lda_i_char 'o'; jsr osasci
-  lda_i_char '!'; jsr osasci
-  lda_i_char '\r'; jsr osasci --13
+  lda 'H'; jsr osasci
+  lda 'e'; jsr osasci
+  lda 'l'; jsr osasci; jsr osasci
+  lda 'o'; jsr osasci
+  lda '!'; jsr osasci
+  lda '\r'; jsr osasci --13
   spin <- label
   jmp spin
 

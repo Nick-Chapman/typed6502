@@ -24,7 +24,7 @@ code = assemble 0x2000 $ Asm.mdo
   outputMessage <- label
   ldy_i 0
   loop <- label
-  lda_iiy (IndirectY ptr)
+  lda (IndirectY ptr)
   beq finished
   jsr osasci
   iny
@@ -38,5 +38,5 @@ code = assemble 0x2000 $ Asm.mdo
 
 copy16i :: MemAddr -> ZeroPage -> Asm ()
 copy16i a v = Asm.do
-  lda_i (lo a) ; sta_z v
-  lda_i (hi a) ; sta_z (v+1)
+  lda (lo a) ; sta_z v
+  lda (hi a) ; sta_z (v+1)

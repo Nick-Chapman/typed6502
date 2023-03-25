@@ -7,7 +7,6 @@ module SimpleAsm
   , IndexedX(..)
   , IndexedY(..)
   , IndirectY(..)
-
   , and_i
   , beq
   , bne
@@ -15,12 +14,9 @@ module SimpleAsm
   , iny
   , jmp
   , jsr
-  , lda_i
-  , lda_i_char
-  , lda_iiy
-  , lda_iy
-  , lda_m
-  , lda_mx
+
+  , lda
+
   , ldy_i
   , lsr_a
   , pha
@@ -66,12 +62,7 @@ iny :: Asm ()
 jmp :: MemAddr -> Asm ()
 jsr :: MemAddr -> Asm ()
 
-lda_i :: Word8 -> Asm ()
-lda_i_char :: Char -> Asm ()
-lda_iiy :: IndirectY -> Asm ()
-lda_iy :: IndexedY -> Asm ()
-lda_m :: MemAddr -> Asm ()
-lda_mx :: IndexedX -> Asm ()
+class Lda arg where lda :: arg -> Asm ()
 
 ldy_i :: Word8 -> Asm ()
 lsr_a :: Asm ()
@@ -103,12 +94,14 @@ inc_m (MemAddr a) = op2 0xee a
 iny = op0 0xc8
 jmp (MemAddr a) = op2 0x4c a
 jsr (MemAddr a) = op2 0x20 a
-lda_i = op1 0xa9
-lda_i_char c = lda_i (c2w c)
-lda_iiy (IndirectY (ZeroPage b)) = op1 0xb1 b
-lda_iy (IndexedY (MemAddr a)) = op2 0xb9 a
-lda_m (MemAddr a) = op2 0xad a
-lda_mx (IndexedX (MemAddr a)) = op2 0xbd a
+
+instance Lda Word8 where lda = op1 0xa9
+instance Lda Char where lda c = lda (c2w c)
+instance Lda IndirectY where lda (IndirectY (ZeroPage b)) = op1 0xb1 b
+instance Lda IndexedY where lda (IndexedY (MemAddr a)) = op2 0xb9 a
+instance Lda IndexedX where lda (IndexedX (MemAddr a)) = op2 0xbd a
+instance Lda MemAddr where lda (MemAddr a) = op2 0xad a
+
 ldy_i = op1 0xa0
 lsr_a = op0 0x4a
 pha = op0 0x48
