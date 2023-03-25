@@ -4,6 +4,9 @@ module UntypedAsm
   , (>>=), (>>), return, pure, mfix, fail
   , ZeroPage, MemAddr
   , allocateZP, label, lo, hi, equb, equs
+  , IndexedX(..)
+  , IndexedY(..)
+  , IndirectY(..)
 
   , and_i
   , beq
@@ -44,6 +47,10 @@ fail :: Asm v
 newtype ZeroPage = ZeroPage Word8 deriving (Num)
 newtype MemAddr = MemAddr Word16 deriving (Num)
 
+newtype IndexedX = IndexedX MemAddr
+newtype IndexedY = IndexedY MemAddr
+newtype IndirectY = IndirectY ZeroPage
+
 allocateZP :: Asm ZeroPage
 label :: Asm MemAddr
 lo :: MemAddr -> Word8
@@ -58,12 +65,14 @@ inc_m :: MemAddr -> Asm ()
 iny :: Asm ()
 jmp :: MemAddr -> Asm ()
 jsr :: MemAddr -> Asm ()
+
 lda_i :: Word8 -> Asm ()
 lda_i_char :: Char -> Asm ()
-lda_iiy :: ZeroPage -> Asm ()
-lda_iy :: MemAddr -> Asm ()
+lda_iiy :: IndirectY -> Asm ()
+lda_iy :: IndexedY -> Asm ()
 lda_m :: MemAddr -> Asm ()
-lda_mx :: MemAddr -> Asm ()
+lda_mx :: IndexedX -> Asm ()
+
 ldy_i :: Word8 -> Asm ()
 lsr_a :: Asm ()
 pha :: Asm ()
@@ -96,10 +105,10 @@ jmp (MemAddr a) = op2 0x4c a
 jsr (MemAddr a) = op2 0x20 a
 lda_i = op1 0xa9
 lda_i_char c = lda_i (c2w c)
-lda_iiy (ZeroPage b) = op1 0xb1 b
-lda_iy (MemAddr a) = op2 0xb9 a
+lda_iiy (IndirectY (ZeroPage b)) = op1 0xb1 b
+lda_iy (IndexedY (MemAddr a)) = op2 0xb9 a
 lda_m (MemAddr a) = op2 0xad a
-lda_mx (MemAddr a) = op2 0xbd a
+lda_mx (IndexedX (MemAddr a)) = op2 0xbd a
 ldy_i = op1 0xa0
 lsr_a = op0 0x4a
 pha = op0 0x48

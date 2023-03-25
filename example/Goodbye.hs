@@ -16,7 +16,7 @@ code = assemble 0x2000 $ Asm.mdo
   ldy_i 0
 
   loop <- label
-  lda_iy mytext
+  lda_iy (IndexedY mytext)
   beq finished
   jsr osasci
   iny

@@ -70,11 +70,11 @@ makePrintHexA = Asm.mdo
   pha
   and_i 0xf0
   lsr_a; lsr_a; lsr_a; lsr_a; tax
-  lda_mx digits
+  lda_mx (IndexedX digits)
   jsr osasci
   pla
   and_i 0x0f; tax
-  lda_mx digits
+  lda_mx (IndexedX digits)
   jsr osasci
   pha; lda_i_char ']'; jsr osasci; pla
   rts
@@ -87,7 +87,7 @@ makePrintMessage msgPtr = Asm.mdo
   entry <- label
   ldy_i 0
   loop <- label
-  lda_iiy msgPtr
+  lda_iiy (IndirectY msgPtr)
   beq done
   jsr osasci
   iny

@@ -24,7 +24,7 @@ code = assemble 0x2000 $ Asm.mdo
   outputMessage <- label
   ldy_i 0
   loop <- label
-  lda_iiy ptr
+  lda_iiy (IndirectY ptr)
   beq finished
   jsr osasci
   iny
