@@ -24,26 +24,26 @@ code = assemble 0x2000 $ Asm.mdo
   frameCount <- label; equb [0]
 
   _mos_syncVB <- label
-  lda_i (immediate 19)
+  lda_i 19
   jmp osbyte
-  --rts
+  --rts -- TODO: detect bug
 
   _mode1 <- label
-  lda_i (immediate 22) ; jsr oswrch
-  lda_i (immediate 1) ; jsr oswrch
+  lda_i 22 ; jsr oswrch
+  lda_i 1 ; jsr oswrch
   rts
 
   _cursorOff <- label
-  lda_i (immediate 23) ; jsr oswrch
-  lda_i (immediate 1) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
-  lda_i (immediate 0) ; jsr oswrch
+  lda_i 23 ; jsr oswrch
+  lda_i 1 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
+  lda_i 0 ; jsr oswrch
   rts
 
   printMessage <- makePrintMessage msgPtr
@@ -59,8 +59,6 @@ code = assemble 0x2000 $ Asm.mdo
   inc_m frameCount
   jmp loop
 
-  --equb [0x88]
-
   printHexA <- makePrintHexA
 
   pure ()
@@ -70,12 +68,12 @@ makePrintHexA = Asm.mdo
   entry <- label
   pha ; lda_i_char '['; jsr osasci; pla
   pha
-  and_i (immediate 0xf0)
+  and_i 0xf0
   lsr_a; lsr_a; lsr_a; lsr_a; tax
   lda_mx digits
   jsr osasci
   pla
-  and_i (immediate 0x0f); tax
+  and_i 0x0f; tax
   lda_mx digits
   jsr osasci
   pha; lda_i_char ']'; jsr osasci; pla
@@ -98,12 +96,11 @@ makePrintMessage msgPtr = Asm.mdo
   rts
   pure entry
 
-
 position :: Word8 -> Word8 -> Asm ()
 position x y = Asm.do
-  lda_i (immediate 31); jsr osasci
-  lda_i (immediate x); jsr osasci
-  lda_i (immediate y); jsr osasci
+  lda_i 31; jsr osasci
+  lda_i x; jsr osasci
+  lda_i y; jsr osasci
 
 copy16i :: MemAddr -> ZeroPage -> Asm ()
 copy16i a v = Asm.do
