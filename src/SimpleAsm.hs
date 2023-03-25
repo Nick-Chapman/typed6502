@@ -1,5 +1,5 @@
 
-module UntypedAsm
+module SimpleAsm
   ( Asm, assemble
   , (>>=), (>>), return, pure, mfix, fail
   , ZeroPage, MemAddr

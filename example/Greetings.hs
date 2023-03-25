@@ -1,7 +1,7 @@
 
 module Greetings (code) where
 
-import UntypedAsm as Asm
+import SimpleAsm as Asm
 import Data.Word (Word8)
 
 code :: [Word8]

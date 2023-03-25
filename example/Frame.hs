@@ -2,7 +2,7 @@
 module Frame (code) where
 
 import Prelude hiding (pure)
-import UntypedAsm as Asm
+import SimpleAsm as Asm
 import Data.Word (Word8)
 
 code :: [Word8]
