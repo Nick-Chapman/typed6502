@@ -43,6 +43,9 @@ import qualified Assemble (Asm(..),assemble)
 
 type State (a::VAL) (x::VAL) (y::VAL) (s::STACK) = 'Code ('Cpu a x y s)
 
+newtype MemAddr (g :: GENERATED) = MA Word16 deriving (Num)
+newtype ZpAddr (v :: VAL) = ZP Word8 deriving (Num)
+
 newtype ZeroPage g = ZeroPage (ZpAddr g)
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
@@ -55,12 +58,6 @@ data CPU = Cpu { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
 data GENERATED = NotExecutable | Code { _cpu :: CPU }
 
 data Asm ( pre :: GENERATED) ( post :: GENERATED) v = Asm { unAsm :: Assemble.Asm v }
-
-newtype MemAddr0 = MemAddr Word16 deriving (Num)
-newtype ZpAddr0 = ZpAddr Word8 deriving (Num)
-
-newtype MemAddr (g :: GENERATED) = MA MemAddr0 deriving Num
-newtype ZpAddr (v :: VAL) = ZP ZpAddr0 deriving Num
 
 assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
@@ -137,11 +134,11 @@ pure = return
 mfix f = Asm (Assemble.Mfix (unAsm . f))
 fail = error "WrappedAsm.fail"
 
-allocateZP = Asm Assemble.AllocateZP >>= \b -> pure (ZP (ZpAddr b))
-labelPermissive = Asm Assemble.Label >>= \a -> pure (MA (MemAddr a))
+allocateZP = Asm Assemble.AllocateZP >>= \b -> pure (ZP b)
+labelPermissive = Asm Assemble.Label >>= \a -> pure (MA a)
 
-lo (MA (MemAddr a)) = loByte a
-hi (MA (MemAddr a)) = hiByte a
+lo (MA a) = loByte a
+hi (MA a) = hiByte a
 
 equb bs = Asm (Assemble.Emit bs)
 equs str = Asm (Assemble.Emit (map c2w str))
@@ -149,30 +146,30 @@ equs str = Asm (Assemble.Emit (map c2w str))
 and_i b = op1 0x29 b
 beq a = branch 0xf0 a
 bne = branch 0xd0
-inc_m (MA (MemAddr a)) = op2 0xee a
-inc_z (ZP (ZpAddr b)) = op1 0xe6 b
+inc_m (MA a) = op2 0xee a
+inc_z (ZP b) = op1 0xe6 b
 iny = op0 0xc8
-jmp (MA (MemAddr a)) = op2 0x4c a
-jsr (MA (MemAddr a)) = op2 0x20 a
+jmp (MA a) = op2 0x4c a
+jsr (MA a) = op2 0x20 a
 ldy_i = op1 0xa0
 lsr_a = op0 0x4a
 pha = op0 0x48
 pla = op0 0x68
 rts = op0 0x60
-sta_z (ZP (ZpAddr b)) = op1 0x85 b
+sta_z (ZP b) = op1 0x85 b
 tax = op0 0xaa
 
 instance Lda Word8 where lda = op1 0xa9
 instance Lda Char where lda c = lda (c2w c)
 
-instance Lda (IndirectY g) where lda (IndirectY (ZP (ZpAddr b))) = op1 0xb1 b
-instance Lda (IndexedY g) where lda (IndexedY (MA (MemAddr a))) = op2 0xb9 a
-instance Lda (IndexedX g) where lda (IndexedX (MA (MemAddr a))) = op2 0xbd a
-instance Lda (Absolute g) where lda (Absolute (MA (MemAddr a))) = op2 0xad a
-instance Lda (ZeroPage g) where lda (ZeroPage (ZP (ZpAddr b))) = op1 0xa5 b
+instance Lda (IndirectY g) where lda (IndirectY (ZP b)) = op1 0xb1 b
+instance Lda (IndexedY g) where lda (IndexedY (MA a)) = op2 0xb9 a
+instance Lda (IndexedX g) where lda (IndexedX (MA a)) = op2 0xbd a
+instance Lda (Absolute g) where lda (Absolute (MA a)) = op2 0xad a
+instance Lda (ZeroPage g) where lda (ZeroPage (ZP b)) = op1 0xa5 b
 
 branch :: Word8 -> MemAddr g -> Asm g g2 ()
-branch opcode (MA (MemAddr a)) =
+branch opcode (MA a) =
   Asm Assemble.Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
 
 op0 :: Word8 -> Asm g g2 ()
