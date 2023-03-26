@@ -6,7 +6,7 @@ import Data.Word (Word8)
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.do
-  lda 'X'
+  lda (immChar 'X')
   jsr osasci
   spin <- labelCode
   jmp spin

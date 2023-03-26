@@ -4,6 +4,9 @@ module Asm
   , assemble
   , (>>=), (>>), return, pure, mfix, fail
   , ZpAddr, MemAddr
+
+  , Immediate, immediate, immChar
+
   , allocateZP
 
   , labelCode
@@ -45,11 +48,20 @@ import Effect
 newtype MemAddr (g :: VAL) = MA Word16 deriving (Num)
 newtype ZpAddr (v :: VAL) = ZP Word8 deriving (Num)
 
+newtype Immediate (v :: VAL) = Immediate Word8 deriving (Num)
 newtype ZeroPage v = ZeroPage (ZpAddr v)
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
 newtype IndirectY v = IndirectY (ZpAddr v)
+
+
+immediate :: Word8 -> Immediate ('Data Word8)
+immediate = Immediate
+
+immChar :: Char -> Immediate ('Data Char)
+immChar c = Immediate (c2w c)
+
 
 (>>=)
   :: Asm g1 g2 v1
@@ -80,7 +92,7 @@ labelData = labelPermissive
 equb :: [Word8] -> Asm v v ()
 equs :: String -> Asm v v ()
 
-and_i :: Word8 -> Asm (State o x y s) (State a x y s) () -- TODO: need Immediate
+and_i :: Immediate a -> Asm (State a x y s) (State a x y s) ()
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 bne :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 inc_m :: MemAddr ('Data v) -> Asm g g () -- no
@@ -93,7 +105,7 @@ jsr :: MemAddr (State a1 x1 y1 ('Cons ('ReturnAddr ('Cpu a2 x2 y2 s2)) s1))
     -> Asm (State a1 x1 y1 s1)
            (State a2 x2 y2 s2) ()
 
-ldy_i :: Word8 -> Asm (State a x o s) (State a x y s) () -- TODO: immediate
+ldy_i :: Immediate a -> Asm (State a x o s) (State a x y s) ()
 
 lsr_a :: Asm g g ()
 
@@ -133,7 +145,7 @@ hi (MA a) = hiByte a
 equb bs = Emit bs
 equs str = Emit (map c2w str)
 
-and_i = op1 0x29
+and_i (Immediate b) = op1 0x29 b
 beq = branch 0xf0
 bne = branch 0xd0
 inc_m (MA a) = op2 0xee a
@@ -141,7 +153,7 @@ inc_z (ZP b) = op1 0xe6 b
 iny = op0 0xc8
 jmp (MA a) = op2 0x4c a
 jsr (MA a) = op2 0x20 a
-ldy_i = op1 0xa0
+ldy_i (Immediate b) = op1 0xa0 b
 lsr_a = op0 0x4a
 pha = op0 0x48
 pla = op0 0x68
@@ -149,9 +161,7 @@ rts = op0 0x60
 sta_z (ZP b) = op1 0x85 b
 tax = op0 0xaa
 
-instance Lda Word8 where lda = op1 0xa9
-instance Lda Char where lda c = lda (c2w c)
-
+instance Lda (Immediate g) where lda (Immediate b) = op1 0xa9 b
 instance Lda (IndirectY g) where lda (IndirectY (ZP b)) = op1 0xb1 b
 instance Lda (IndexedY g) where lda (IndexedY (MA a)) = op2 0xb9 a
 instance Lda (IndexedX g) where lda (IndexedX (MA a)) = op2 0xbd a

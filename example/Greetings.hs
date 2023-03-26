@@ -38,5 +38,5 @@ code = assemble 0x2000 $ Asm.mdo
 
 copy16i :: MemAddr g -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
-  lda (lo a) ; sta_z v
-  lda (hi a) ; sta_z (v+1)
+  lda (immediate (lo a)) ; sta_z v
+  lda (immediate (hi a)) ; sta_z (v+1)

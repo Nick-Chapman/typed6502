@@ -7,8 +7,8 @@ import Data.Word (Word8)
 
 copy16i :: MemAddr v -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
-  lda (lo a) ; sta_z v
-  lda (hi a) ; sta_z (v+1)
+  lda (immediate (lo a)) ; sta_z v
+  lda (immediate (hi a)) ; sta_z (v+1)
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
@@ -34,26 +34,26 @@ code = assemble 0x2000 $ Asm.mdo
   --frameCount <- labelData; equb [0]
 
   _mos_syncVB <- labelEntry
-  lda @Word8 19
+  lda (immediate 19)
   jmp osbyte
   --rts -- TEST: bug if added
 
   _mode1 <- labelEntry
-  lda @Word8 22 ; jsr oswrch
-  lda @Word8 1 ; jsr oswrch
+  lda (immediate 22); jsr oswrch
+  lda (immediate 1) ; jsr oswrch
   rts
 
   _cursorOff <- labelEntry
-  lda @Word8 23 ; jsr oswrch
-  lda @Word8 1 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
-  lda @Word8 0 ; jsr oswrch
+  lda (immediate 23); jsr oswrch
+  lda (immediate 1) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
+  lda (immediate 0) ; jsr oswrch
   rts
 
   printMessage <- makePrintMessage msgPtr
@@ -76,7 +76,7 @@ code = assemble 0x2000 $ Asm.mdo
 makePrintHexA :: Asm ('Data v1) ('Data v2) (MemAddr (State a x y s))
 makePrintHexA = Asm.mdo
   entry <- labelEntry
-  pha ; lda '['; jsr osasci
+  pha ; lda (immChar '['); jsr osasci
   pla -- TODO: comment should be type err -- but not because osasci is too unspecific
   pha
   and_i 0xf0
@@ -87,7 +87,7 @@ makePrintHexA = Asm.mdo
   and_i 0x0f; tax
   lda (IndexedX digits)
   jsr osasci
-  pha; lda ']'; jsr osasci; pla
+  pha; lda (immChar ']'); jsr osasci; pla
   --pha -- TEST: this is a type error
   rts
   digits <- labelData
@@ -110,9 +110,9 @@ makePrintMessage msgPtr = Asm.mdo
 
 position :: Word8 -> Word8 -> Asm (State a1 x1 y1 s1) (State a2 x2 y2 s2) ()
 position x y = Asm.do
-  lda @Word8 31; jsr osasci
-  lda x; jsr osasci
-  lda y; jsr osasci
+  lda (immediate 31); jsr osasci
+  lda (immediate x); jsr osasci
+  lda (immediate y); jsr osasci
 
 osasci,oswrch,osbyte :: MemAddr (State a1 x1 y1 s1)
 osasci = 0xffe3
