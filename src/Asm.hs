@@ -120,7 +120,7 @@ sta_z :: ZpAddr (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
 tax :: Asm (State a x y s) (State a a y s) ()
 
-class Lda arg where lda :: arg -> Asm q r ()
+class Lda arg where lda :: arg -> Asm (State o x y s) (State a x y s) ()
 
 lo :: MemAddr g -> Word8 -- TODO; erm?
 hi :: MemAddr g -> Word8

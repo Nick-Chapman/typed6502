@@ -5,7 +5,7 @@ import Prelude hiding (pure)
 import Asm
 import Data.Word (Word8)
 
-copy16i :: MemAddr 'NotExecutable -> ZpAddr a1 -> Asm (State a1 x1 y1 s1) (State a1 x2 y2 s2) ()
+copy16i :: MemAddr 'NotExecutable -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
   lda (lo a) ; sta_z v
   lda (hi a) ; sta_z (v+1)
