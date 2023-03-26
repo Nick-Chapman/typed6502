@@ -5,7 +5,7 @@ import Prelude hiding (pure)
 import Asm
 import Data.Word (Word8)
 
-copy16i :: MemAddr 'NotExecutable -> ZeroPage a1 -> Asm (State a1 x1 y1 s1) (State a1 x2 y2 s2) ()
+copy16i :: MemAddr 'NotExecutable -> ZpAddr a1 -> Asm (State a1 x1 y1 s1) (State a1 x2 y2 s2) ()
 copy16i a v = Asm.do
   lda (lo a) ; sta_z v
   lda (hi a) ; sta_z (v+1)
@@ -14,6 +14,7 @@ code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
 
   msgPtr <- allocateZP
+  --frameCount <- allocateZP
 
   let
     -- TODO: can we put a type annotation here?
@@ -90,7 +91,7 @@ makePrintHexA = Asm.mdo
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZeroPage g -> Asm 'NotExecutable 'NotExecutable (MemAddr ('Code ('Cpu a1 x1 o ('Cons ('ReturnAddr ('Cpu a1 x1 y1 s)) s))))
+makePrintMessage :: ZpAddr g -> Asm 'NotExecutable 'NotExecutable (MemAddr ('Code ('Cpu a1 x1 o ('Cons ('ReturnAddr ('Cpu a1 x1 y1 s)) s))))
 makePrintMessage msgPtr = Asm.mdo
   entry <- labelEntry
   ldy_i 0

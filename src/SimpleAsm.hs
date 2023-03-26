@@ -3,7 +3,7 @@ module SimpleAsm
   ( Asm0,  Asm, VAL(..), STACK(..), CPU(..), GENERATED(..), State
   , assemble
   , (>>=), (>>), return, pure, mfix, fail
-  , ZeroPage0, ZeroPage
+  , ZpAddr0, ZpAddr
   , MemAddr0, MemAddr
   , allocateZP, label, lo, hi, equb, equs
   , Absolute(..)
@@ -48,18 +48,18 @@ pure :: v -> Asm0 v
 mfix :: (v -> Asm0 v) -> Asm0 v
 fail :: Asm0 v
 
-newtype ZeroPage0 = ZeroPage Word8 deriving (Num)
+newtype ZpAddr0 = ZpAddr Word8 deriving (Num)
 newtype MemAddr0 = MemAddr Word16 deriving (Num)
 
-type ZeroPage (a :: VAL) = ZeroPage0
+type ZpAddr (a :: VAL) = ZpAddr0
 type MemAddr (a :: GENERATED) = MemAddr0
 
 newtype Absolute = Absolute MemAddr0
 newtype IndexedX = IndexedX MemAddr0
 newtype IndexedY = IndexedY MemAddr0
-newtype IndirectY = IndirectY ZeroPage0
+newtype IndirectY = IndirectY ZpAddr0
 
-allocateZP :: Asm0 ZeroPage0
+allocateZP :: Asm0 ZpAddr0
 label :: Asm0 MemAddr0
 lo :: MemAddr0 -> Word8
 hi :: MemAddr0 -> Word8
@@ -81,7 +81,7 @@ lsr_a :: Asm0 ()
 pha :: Asm0 ()
 pla :: Asm0 ()
 rts :: Asm0 ()
-sta_z :: ZeroPage0 -> Asm0 ()
+sta_z :: ZpAddr0 -> Asm0 ()
 tax :: Asm0 ()
 
 
@@ -92,7 +92,7 @@ pure = Assemble.Pure
 mfix = Assemble.Mfix
 fail = error "UntypedAsm0.fail"
 
-allocateZP = Assemble.AllocateZP >>= \b -> pure (ZeroPage b)
+allocateZP = Assemble.AllocateZP >>= \b -> pure (ZpAddr b)
 label = Assemble.Label >>= \a -> pure (MemAddr a)
 lo (MemAddr a) = loByte a
 hi (MemAddr a) = hiByte a
@@ -109,7 +109,7 @@ jsr (MemAddr a) = op2 0x20 a
 
 instance Lda Word8 where lda = op1 0xa9
 instance Lda Char where lda c = lda (c2w c)
-instance Lda IndirectY where lda (IndirectY (ZeroPage b)) = op1 0xb1 b
+instance Lda IndirectY where lda (IndirectY (ZpAddr b)) = op1 0xb1 b
 instance Lda IndexedY where lda (IndexedY (MemAddr a)) = op2 0xb9 a
 instance Lda IndexedX where lda (IndexedX (MemAddr a)) = op2 0xbd a
 instance Lda Absolute where lda (Absolute (MemAddr a)) = op2 0xad a
@@ -119,7 +119,7 @@ lsr_a = op0 0x4a
 pha = op0 0x48
 pla = op0 0x68
 rts = op0 0x60
-sta_z (ZeroPage b) = op1 0x85 b
+sta_z (ZpAddr b) = op1 0x85 b
 tax = op0 0xaa
 
 

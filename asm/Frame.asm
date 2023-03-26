@@ -26,6 +26,7 @@ endmacro
 ORG &70
 
 .msgPtr SKIP 2
+;.frameCount SKIP 1 ;; TODO
 
 ORG &2000
 

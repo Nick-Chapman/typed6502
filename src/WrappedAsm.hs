@@ -3,7 +3,7 @@ module WrappedAsm
   ( Asm, VAL(..), STACK(..), CPU(..), GENERATED(..), State
   , assemble
   , (>>=), (>>), return, pure, mfix, fail
-  , ZeroPage, MemAddr
+  , ZpAddr, MemAddr
   , allocateZP
 
   , labelCode
@@ -41,13 +41,13 @@ import qualified SimpleAsm as Simple -- TODO: avoid layering on Simple; just con
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
-newtype IndirectY g = IndirectY (ZeroPage g)
+newtype IndirectY g = IndirectY (ZpAddr g)
 
 data Asm ( pre :: GENERATED) ( post :: GENERATED) v =
   Asm { unAsm :: Simple.Asm0 v }
 
 newtype MemAddr (g :: GENERATED) = MA Simple.MemAddr0 deriving Num
-newtype ZeroPage (v :: VAL) = ZP Simple.ZeroPage0 deriving Num
+newtype ZpAddr (v :: VAL) = ZP Simple.ZpAddr0 deriving Num
 
 assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
@@ -66,7 +66,7 @@ pure :: v -> Asm g g v
 mfix :: (v -> Asm g1 g2 v) -> Asm g1 g2 v
 fail :: Asm g1 g2 v
 
-allocateZP :: forall v g. Asm g g (ZeroPage v)
+allocateZP :: forall v g. Asm g g (ZpAddr v)
 
 labelPermissive :: Asm g_ignore g (MemAddr g) -- not exposed to user
 labelEntry :: Asm 'NotExecutable ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
@@ -105,7 +105,7 @@ pla :: Asm (State o x y ('Cons a s))
 rts :: Asm (State a x y ('Cons ('ReturnAddr ('Cpu a x y s)) s))
            'NotExecutable ()
 
-sta_z :: ZeroPage (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
+sta_z :: ZpAddr (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
 tax :: Asm (State a x y s) (State a a y s) ()
 
