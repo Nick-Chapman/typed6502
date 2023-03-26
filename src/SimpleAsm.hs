@@ -13,6 +13,7 @@ module SimpleAsm
   , labelData
 
   , lo, hi, equb, equs
+  , ZeroPage(..)
   , Absolute(..)
   , IndexedX(..)
   , IndexedY(..)
@@ -21,6 +22,7 @@ module SimpleAsm
   , beq
   , bne
   , inc_m
+  , inc_z
   , iny
   , jmp
   , jsr
@@ -61,6 +63,7 @@ newtype MemAddr0 = MemAddr Word16 deriving (Num)
 type ZpAddr (a :: VAL) = ZpAddr0
 type MemAddr (a :: GENERATED) = MemAddr0
 
+newtype ZeroPage = ZeroPage ZpAddr0
 newtype Absolute = Absolute MemAddr0
 newtype IndexedX = IndexedX MemAddr0
 newtype IndexedY = IndexedY MemAddr0
@@ -86,6 +89,7 @@ and_i :: Word8 -> Asm0 ()
 beq :: MemAddr0 -> Asm0 ()
 bne :: MemAddr0 -> Asm0 ()
 inc_m :: MemAddr0 -> Asm0 ()
+inc_z :: ZpAddr0 -> Asm0 ()
 iny :: Asm0 ()
 jmp :: MemAddr0 -> Asm0 ()
 jsr :: MemAddr0 -> Asm0 ()
@@ -119,6 +123,7 @@ and_i = op1 0x29
 beq = branch 0xf0
 bne = branch 0xd0
 inc_m (MemAddr a) = op2 0xee a
+inc_z (ZpAddr b) = op1 0xe6 b
 iny = op0 0xc8
 jmp (MemAddr a) = op2 0x4c a
 jsr (MemAddr a) = op2 0x20 a
@@ -129,6 +134,7 @@ instance Lda IndirectY where lda (IndirectY (ZpAddr b)) = op1 0xb1 b
 instance Lda IndexedY where lda (IndexedY (MemAddr a)) = op2 0xb9 a
 instance Lda IndexedX where lda (IndexedX (MemAddr a)) = op2 0xbd a
 instance Lda Absolute where lda (Absolute (MemAddr a)) = op2 0xad a
+instance Lda ZeroPage where lda (ZeroPage (ZpAddr b)) = op1 0xa5 b
 
 ldy_i = op1 0xa0
 lsr_a = op0 0x4a

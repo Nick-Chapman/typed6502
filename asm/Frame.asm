@@ -26,14 +26,14 @@ endmacro
 ORG &70
 
 .msgPtr SKIP 2
-;.frameCount SKIP 1 ;; TODO
+.frameCount SKIP 1
 
 ORG &2000
 
 .start:
     jmp main
 
-.frameCount SKIP 1
+;.frameCount SKIP 1
 
 .mos_syncVB: lda #19 : jmp osbyte
 

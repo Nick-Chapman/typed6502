@@ -11,12 +11,13 @@ module WrappedAsm
   , labelData
 
   , lo, hi, equb, equs
-  , Absolute(..), IndexedX(..), IndexedY(..), IndirectY(..)
+  , ZeroPage(..), Absolute(..), IndexedX(..), IndexedY(..), IndirectY(..)
 
   , and_i
   , beq
   , bne
   , inc_m
+  , inc_z
   , iny
   , jmp
   , jsr
@@ -38,6 +39,7 @@ import Phantom
 import Prelude hiding ((>>=),(>>),return,pure,fail)
 import qualified SimpleAsm as Simple -- TODO: avoid layering on Simple; just confusing!
 
+newtype ZeroPage g = ZeroPage (ZpAddr g)
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
@@ -84,6 +86,7 @@ and_i :: Word8 -> Asm (State o x y s) (State a x y s) () -- TODO: need Immediate
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 bne :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 inc_m :: MemAddr 'NotExecutable -> Asm g g () -- no
+inc_z :: ZpAddr v -> Asm g g () -- no
 iny :: Asm g g ()
 
 jmp :: MemAddr ('Code c) -> Asm ('Code c) 'NotExecutable ()
@@ -138,6 +141,7 @@ and_i = lift1 Simple.and_i
 beq (MA a) = Asm (Simple.beq a)
 bne (MA a) = Asm (Simple.bne a)
 inc_m (MA a) = Asm (Simple.inc_m a)
+inc_z (ZP a) = Asm (Simple.inc_z a)
 iny = Asm Simple.iny
 jmp (MA a) = Asm (Simple.jmp a)
 jsr (MA a) = Asm (Simple.jsr a)
@@ -163,6 +167,9 @@ instance Lda (IndexedX g) where
 
 instance Lda (Absolute g) where
   lda (Absolute (MA x)) = Asm (Simple.lda (Simple.Absolute x))
+
+instance Lda (ZeroPage g) where
+  lda (ZeroPage (ZP x)) = Asm (Simple.lda (Simple.ZeroPage x))
 
 lift1 :: (a -> Simple.Asm0 v) -> a -> Asm p q v
 lift1 f x = Asm (f x)

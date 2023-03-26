@@ -14,7 +14,10 @@ code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
 
   msgPtr <- allocateZP
-  --frameCount <- allocateZP
+  _ <- allocateZP -- second byte for the pointer
+  -- TODO: want a type error if fails to allocate two ZP bytes for a ptr
+  -- and so it overlaps with the following allocation
+  frameCount <- allocateZP
 
   let
     -- TODO: can we put a type annotation here?
@@ -28,7 +31,7 @@ code = assemble 0x2000 $ Asm.mdo
   jmp main
   --jmp main -- Is type error for unreachable code. Good
 
-  frameCount <- labelData; equb [0]
+  --frameCount <- labelData; equb [0]
 
   _mos_syncVB <- labelEntry
   lda @Word8 19
@@ -62,8 +65,8 @@ code = assemble 0x2000 $ Asm.mdo
 
   loop <- labelCode
   jsr _mos_syncVB
-  position 1 1; puts "Frame : "; lda (Absolute frameCount); jsr printHexA
-  inc_m frameCount
+  position 1 1; puts "Frame : "; lda (ZeroPage frameCount); jsr printHexA
+  inc_z frameCount
   jmp loop
 
   printHexA <- makePrintHexA
