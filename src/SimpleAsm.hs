@@ -1,9 +1,12 @@
 
 module SimpleAsm
-  ( Asm, assemble
+  ( Asm0,  Asm, VAL(..), STACK(..), CPU(..), GENERATED(..), State
+  , assemble
   , (>>=), (>>), return, pure, mfix, fail
-  , ZeroPage, MemAddr
+  , ZeroPage0, ZeroPage
+  , MemAddr0, MemAddr
   , allocateZP, label, lo, hi, equb, equs
+  , Absolute(..)
   , IndexedX(..)
   , IndexedY(..)
   , IndirectY(..)
@@ -27,65 +30,74 @@ module SimpleAsm
 
   ) where
 
+import Phantom
 import Prelude hiding (pure,(>>=),(>>),return,fail)
 import Data.Bits (shiftR,(.&.))
 import Data.ByteString.Internal (c2w)
 import Data.Word (Word8,Word16)
-import Assemble (Asm(..), assemble)
+import qualified Assemble (Asm(..))
+import Assemble (assemble)
 
-(>>=) :: Asm v1 -> (v1 -> Asm v2) -> Asm v2
-(>>) :: Asm () -> Asm v2 -> Asm v2
-return :: v -> Asm v
-pure :: v -> Asm v
-mfix :: (v -> Asm v) -> Asm v
-fail :: Asm v
+type Asm0 = Assemble.Asm
+type Asm (g :: GENERATED) (h :: GENERATED) = Asm0
 
-newtype ZeroPage = ZeroPage Word8 deriving (Num)
-newtype MemAddr = MemAddr Word16 deriving (Num)
+(>>=) :: Asm0 v1 -> (v1 -> Asm0 v2) -> Asm0 v2
+(>>) :: Asm0 () -> Asm0 v2 -> Asm0 v2
+return :: v -> Asm0 v
+pure :: v -> Asm0 v
+mfix :: (v -> Asm0 v) -> Asm0 v
+fail :: Asm0 v
 
-newtype IndexedX = IndexedX MemAddr
-newtype IndexedY = IndexedY MemAddr
-newtype IndirectY = IndirectY ZeroPage
+newtype ZeroPage0 = ZeroPage Word8 deriving (Num)
+newtype MemAddr0 = MemAddr Word16 deriving (Num)
 
-allocateZP :: Asm ZeroPage
-label :: Asm MemAddr
-lo :: MemAddr -> Word8
-hi :: MemAddr -> Word8
-equb :: [Word8] -> Asm ()
-equs :: String -> Asm ()
+type ZeroPage (a :: VAL) = ZeroPage0
+type MemAddr (a :: GENERATED) = MemAddr0
 
-and_i :: Word8 -> Asm ()
-beq :: MemAddr -> Asm ()
-bne :: MemAddr -> Asm ()
-inc_m :: MemAddr -> Asm ()
-iny :: Asm ()
-jmp :: MemAddr -> Asm ()
-jsr :: MemAddr -> Asm ()
+newtype Absolute = Absolute MemAddr0
+newtype IndexedX = IndexedX MemAddr0
+newtype IndexedY = IndexedY MemAddr0
+newtype IndirectY = IndirectY ZeroPage0
 
-class Lda arg where lda :: arg -> Asm ()
+allocateZP :: Asm0 ZeroPage0
+label :: Asm0 MemAddr0
+lo :: MemAddr0 -> Word8
+hi :: MemAddr0 -> Word8
+equb :: [Word8] -> Asm0 ()
+equs :: String -> Asm0 ()
 
-ldy_i :: Word8 -> Asm ()
-lsr_a :: Asm ()
-pha :: Asm ()
-pla :: Asm ()
-rts :: Asm ()
-sta_z :: ZeroPage -> Asm ()
-tax :: Asm ()
+and_i :: Word8 -> Asm0 ()
+beq :: MemAddr0 -> Asm0 ()
+bne :: MemAddr0 -> Asm0 ()
+inc_m :: MemAddr0 -> Asm0 ()
+iny :: Asm0 ()
+jmp :: MemAddr0 -> Asm0 ()
+jsr :: MemAddr0 -> Asm0 ()
+
+class Lda arg where lda :: arg -> Asm0 ()
+
+ldy_i :: Word8 -> Asm0 ()
+lsr_a :: Asm0 ()
+pha :: Asm0 ()
+pla :: Asm0 ()
+rts :: Asm0 ()
+sta_z :: ZeroPage0 -> Asm0 ()
+tax :: Asm0 ()
 
 
-(>>=) = Bind
+(>>=) = Assemble.Bind
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
-return = Pure
-pure = Pure
-mfix = Mfix
-fail = error "UntypedAsm.fail"
+return = Assemble.Pure
+pure = Assemble.Pure
+mfix = Assemble.Mfix
+fail = error "UntypedAsm0.fail"
 
-allocateZP = AllocateZP >>= \b -> pure (ZeroPage b)
-label = Label >>= \a -> pure (MemAddr a)
+allocateZP = Assemble.AllocateZP >>= \b -> pure (ZeroPage b)
+label = Assemble.Label >>= \a -> pure (MemAddr a)
 lo (MemAddr a) = loByte a
 hi (MemAddr a) = hiByte a
-equb = Emit
-equs str = Emit (map c2w str)
+equb = Assemble.Emit
+equs str = Assemble.Emit (map c2w str)
 
 and_i = op1 0x29
 beq = branch 0xf0
@@ -100,7 +112,7 @@ instance Lda Char where lda c = lda (c2w c)
 instance Lda IndirectY where lda (IndirectY (ZeroPage b)) = op1 0xb1 b
 instance Lda IndexedY where lda (IndexedY (MemAddr a)) = op2 0xb9 a
 instance Lda IndexedX where lda (IndexedX (MemAddr a)) = op2 0xbd a
-instance Lda MemAddr where lda (MemAddr a) = op2 0xad a
+instance Lda Absolute where lda (Absolute (MemAddr a)) = op2 0xad a
 
 ldy_i = op1 0xa0
 lsr_a = op0 0x4a
@@ -111,18 +123,18 @@ sta_z (ZeroPage b) = op1 0x85 b
 tax = op0 0xaa
 
 
-branch :: Word8 -> MemAddr -> Asm ()
+branch :: Word8 -> MemAddr0 -> Asm0 ()
 branch opcode (MemAddr a) =
-  Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
+  Assemble.Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
 
-op0 :: Word8 -> Asm ()
-op0 code = Emit [code]
+op0 :: Word8 -> Asm0 ()
+op0 code = Assemble.Emit [code]
 
-op1 :: Word8 -> Word8 -> Asm ()
-op1 code b = Emit [code, b]
+op1 :: Word8 -> Word8 -> Asm0 ()
+op1 code b = Assemble.Emit [code, b]
 
-op2 :: Word8 -> Word16 -> Asm ()
-op2 code a = Emit [code, loByte a, hiByte a]
+op2 :: Word8 -> Word16 -> Asm0 ()
+op2 code a = Assemble.Emit [code, loByte a, hiByte a]
 
 loByte,hiByte :: Word16 -> Word8
 loByte a = fromIntegral (a .&. 0xff)

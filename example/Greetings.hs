@@ -1,7 +1,7 @@
 
 module Greetings (code) where
 
-import SimpleAsm as Asm
+import Asm
 import Data.Word (Word8)
 
 code :: [Word8]
@@ -36,7 +36,7 @@ code = assemble 0x2000 $ Asm.mdo
     osasci = 0xffe3
 
 
-copy16i :: MemAddr -> ZeroPage -> Asm ()
+copy16i :: MemAddr g -> ZeroPage a1 -> Asm g1 (State a2 x y s) ()
 copy16i a v = Asm.do
   lda (lo a) ; sta_z v
   lda (hi a) ; sta_z (v+1)

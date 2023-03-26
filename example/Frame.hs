@@ -2,8 +2,13 @@
 module Frame (code) where
 
 import Prelude hiding (pure)
-import SimpleAsm as Asm
+import Asm
 import Data.Word (Word8)
+
+copy16i :: MemAddr 'NotExecutable -> ZeroPage a -> Asm (State a1 x1 y1 s1) (State a2 x2 y2 s2) ()
+copy16i a v = Asm.do
+  lda (lo a) ; sta_z v
+  lda (hi a) ; sta_z (v+1)
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
@@ -11,7 +16,7 @@ code = assemble 0x2000 $ Asm.mdo
   msgPtr <- allocateZP
 
   let
-    puts :: String -> Asm ()
+    --puts :: String -> Asm 'NotExecutable 'NotExecutable ()
     puts str = Asm.mdo
       copy16i msg msgPtr
       jmp after
@@ -20,6 +25,7 @@ code = assemble 0x2000 $ Asm.mdo
       jsr printMessage
 
   jmp main
+  --jmp main -- Is type error for unreachable code. Good
 
   frameCount <- label; equb [0]
 
@@ -55,7 +61,7 @@ code = assemble 0x2000 $ Asm.mdo
 
   loop <- label
   jsr _mos_syncVB
-  position 1 1; puts "Frame : "; lda frameCount; jsr printHexA
+  position 1 1; puts "Frame : "; lda (Absolute frameCount); jsr printHexA
   inc_m frameCount
   jmp loop
 
@@ -63,10 +69,11 @@ code = assemble 0x2000 $ Asm.mdo
 
   pure ()
 
-makePrintHexA :: Asm MemAddr
+makePrintHexA :: Asm g1 'NotExecutable (MemAddr (State a x y s))
 makePrintHexA = Asm.mdo
   entry <- label
-  pha ; lda '['; jsr osasci; pla
+  pha ; lda '['; jsr osasci
+  pla -- TODO: comment out to see bug
   pha
   and_i 0xf0
   lsr_a; lsr_a; lsr_a; lsr_a; tax
@@ -82,7 +89,7 @@ makePrintHexA = Asm.mdo
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZeroPage -> Asm MemAddr
+makePrintMessage :: ZeroPage v -> Asm g1 'NotExecutable (MemAddr (State a x o s))
 makePrintMessage msgPtr = Asm.mdo
   entry <- label
   ldy_i 0
@@ -96,18 +103,13 @@ makePrintMessage msgPtr = Asm.mdo
   rts
   pure entry
 
-position :: Word8 -> Word8 -> Asm ()
+position :: Word8 -> Word8 -> Asm (State a1 x1 y1 s1) (State a2 x2 y2 s2) ()
 position x y = Asm.do
   lda @Word8 31; jsr osasci
   lda x; jsr osasci
   lda y; jsr osasci
 
-copy16i :: MemAddr -> ZeroPage -> Asm ()
-copy16i a v = Asm.do
-  lda (lo a) ; sta_z v
-  lda (hi a) ; sta_z (v+1)
-
-osasci,oswrch,osbyte :: MemAddr
+osasci,oswrch,osbyte :: MemAddr (State a1 x1 y1 s1)
 osasci = 0xffe3
 oswrch = 0xffee
 osbyte = 0xfff4
