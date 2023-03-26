@@ -36,14 +36,18 @@ module WrappedAsm
 import Data.Word (Word8,Word16)
 import Phantom
 import Prelude hiding ((>>=),(>>),return,pure,fail)
-import SimpleAsm (Absolute,IndexedX,IndexedY,IndirectY)
 import qualified SimpleAsm as Simple
+
+newtype Absolute g = Absolute (MemAddr g)
+newtype IndexedX g = IndexedX (MemAddr g)
+newtype IndexedY g = IndexedY (MemAddr g)
+newtype IndirectY g = IndirectY (ZeroPage g)
 
 data Asm ( pre :: GENERATED) ( post :: GENERATED) v =
   Asm { unAsm :: Simple.Asm0 v }
 
-type ZeroPage (v :: VAL) = Simple.ZeroPage0
-type MemAddr (g :: GENERATED) = Simple.MemAddr0 -- TODO: bug here?
+newtype MemAddr (g :: GENERATED) = MA Simple.MemAddr0 deriving Num
+newtype ZeroPage (v :: VAL) = ZP Simple.ZeroPage0 deriving Num
 
 assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
@@ -121,33 +125,44 @@ mfix f = Asm (Simple.mfix (unAsm . f))
 fail = error "WrappedAsm.fail"
 
 
-allocateZP = Asm Simple.allocateZP
-labelPermissive = Asm Simple.label
-lo = Simple.lo
-hi = Simple.hi
+mapA :: (a -> b) -> Asm g1 g2 a -> Asm g1 g2 b
+mapA f m = m >>= \x -> pure (f x)
+
+allocateZP = mapA ZP (Asm Simple.allocateZP)
+labelPermissive = mapA MA (Asm Simple.label)
+lo (MA a) = Simple.lo a
+hi (MA a) = Simple.hi a
 equb = lift1 Simple.equb
 equs = lift1 Simple.equs
 and_i = lift1 Simple.and_i
-beq = lift1 Simple.beq
-bne = lift1 Simple.bne
-inc_m = lift1 Simple.inc_m
+beq (MA a) = Asm (Simple.beq a)
+bne (MA a) = Asm (Simple.bne a)
+inc_m (MA a) = Asm (Simple.inc_m a)
 iny = Asm Simple.iny
-jmp = lift1 Simple.jmp
-jsr = lift1 Simple.jsr
+jmp (MA a) = Asm (Simple.jmp a)
+jsr (MA a) = Asm (Simple.jsr a)
 ldy_i = lift1 Simple.ldy_i
 lsr_a = Asm Simple.lsr_a
 pha = Asm Simple.pha
 pla = Asm Simple.pla
 rts = Asm Simple.rts
-sta_z = lift1 Simple.sta_z
+sta_z (ZP a) = Asm (Simple.sta_z a)
 tax = Asm Simple.tax
 
 instance Lda Word8 where lda = lift1 Simple.lda
 instance Lda Char where lda = lift1 Simple.lda
-instance Lda IndirectY where lda = lift1 Simple.lda
-instance Lda IndexedY where lda = lift1 Simple.lda
-instance Lda IndexedX where lda = lift1 Simple.lda
-instance Lda Absolute where lda = lift1 Simple.lda
+
+instance Lda (IndirectY g) where
+  lda (IndirectY (ZP x)) = Asm (Simple.lda (Simple.IndirectY x))
+
+instance Lda (IndexedY g) where
+  lda (IndexedY (MA x)) = Asm (Simple.lda (Simple.IndexedY x))
+
+instance Lda (IndexedX g) where
+  lda (IndexedX (MA x)) = Asm (Simple.lda (Simple.IndexedX x))
+
+instance Lda (Absolute g) where
+  lda (Absolute (MA x)) = Asm (Simple.lda (Simple.Absolute x))
 
 lift1 :: (a -> Simple.Asm0 v) -> a -> Asm p q v
 lift1 f x = Asm (f x)
