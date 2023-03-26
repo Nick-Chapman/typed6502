@@ -69,25 +69,25 @@ fail :: Asm g1 g2 v
 allocateZP :: forall v g. Asm g g (ZpAddr v)
 
 labelPermissive :: Asm g_ignore g (MemAddr g) -- not exposed to user
-labelEntry :: Asm 'NotExecutable ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
+labelEntry :: Asm ('Data v) ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
 labelCode :: Asm ('Code c) ('Code c) (MemAddr ('Code c)) -- expects fallthrough
-labelData :: Asm 'NotExecutable 'NotExecutable (MemAddr 'NotExecutable)
+labelData :: Asm ('Data v) ('Data v) (MemAddr ('Data v))
 
 labelEntry = labelPermissive
 labelCode = labelPermissive
 labelData = labelPermissive
 
-equb :: [Word8] -> Asm 'NotExecutable 'NotExecutable ()
-equs :: String -> Asm 'NotExecutable 'NotExecutable ()
+equb :: [Word8] -> Asm ('Data v) ('Data v) ()
+equs :: String -> Asm ('Data v) ('Data v) ()
 
 and_i :: Word8 -> Asm (State o x y s) (State a x y s) () -- TODO: need Immediate
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 bne :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
-inc_m :: MemAddr 'NotExecutable -> Asm g g () -- no
+inc_m :: MemAddr ('Data v) -> Asm g g () -- no
 inc_z :: ZpAddr v -> Asm g g () -- no
 iny :: Asm g g ()
 
-jmp :: MemAddr ('Code c) -> Asm ('Code c) 'NotExecutable ()
+jmp :: MemAddr ('Code c) -> Asm ('Code c) ('Data v) ()
 
 jsr :: MemAddr (State a1 x1 y1 ('Cons ('ReturnAddr ('Cpu a2 x2 y2 s2)) s1))
     -> Asm (State a1 x1 y1 s1)
@@ -104,13 +104,14 @@ pla :: Asm (State o x y ('Cons a s))
            (State a x y s) ()
 
 rts :: Asm (State a x y ('Cons ('ReturnAddr ('Cpu a x y s)) s))
-           'NotExecutable ()
+           ('Data v) ()
 
 sta_z :: ZpAddr (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
 tax :: Asm (State a x y s) (State a a y s) ()
 
-class Lda arg where lda :: arg -> Asm (State o x y s) (State a x y s) ()
+class Lda arg where
+  lda :: arg -> Asm (State o x y s) (State a x y s) ()
 
 lo :: MemAddr g -> Word8 -- TODO; erm?
 hi :: MemAddr g -> Word8
