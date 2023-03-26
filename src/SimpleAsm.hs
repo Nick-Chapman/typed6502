@@ -5,7 +5,14 @@ module SimpleAsm
   , (>>=), (>>), return, pure, mfix, fail
   , ZpAddr0, ZpAddr
   , MemAddr0, MemAddr
-  , allocateZP, label, lo, hi, equb, equs
+  , allocateZP
+
+  , label
+  , labelCode
+  , labelEntry
+  , labelData
+
+  , lo, hi, equb, equs
   , Absolute(..)
   , IndexedX(..)
   , IndexedY(..)
@@ -60,7 +67,16 @@ newtype IndexedY = IndexedY MemAddr0
 newtype IndirectY = IndirectY ZpAddr0
 
 allocateZP :: Asm0 ZpAddr0
+
 label :: Asm0 MemAddr0
+labelEntry :: Asm0 MemAddr0
+labelCode :: Asm0 MemAddr0
+labelData :: Asm0 MemAddr0
+
+labelEntry = label
+labelCode = label
+labelData = label
+
 lo :: MemAddr0 -> Word8
 hi :: MemAddr0 -> Word8
 equb :: [Word8] -> Asm0 ()
