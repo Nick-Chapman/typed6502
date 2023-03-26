@@ -1,24 +1,22 @@
 
-module Assemble
-  ( Asm(..)
-  , assemble
-  ) where
+module Assemble (Asm(..), assemble) where
 
 import Data.Word (Word8,Word16)
+import Effect (GENERATED)
 
-data Asm v where
-  Pure :: v -> Asm v
-  Bind :: Asm v -> (v -> Asm w) -> Asm w
-  Emit :: [Word8] -> Asm ()
-  Label :: Asm Word16
-  Mfix :: (a -> Asm a) -> Asm a
-  AllocateZP :: Asm Word8
+data Asm ( pre :: GENERATED) ( post :: GENERATED) v where
+  Pure :: v -> Asm i i v
+  Bind :: Asm i j v -> (v -> Asm j k w) -> Asm i k w
+  Emit :: [Word8] -> Asm i j ()
+  Label :: Asm i j Word16
+  Mfix :: (a -> Asm i j a) -> Asm i j a
+  AllocateZP :: Asm i j Word8
 
-assemble :: Word16 -> Asm () -> [Word8]
+assemble :: Word16 -> Asm i j () -> [Word8]
 assemble origin m0 = do
   let (_, (), bytes) = loop State {at = origin, zp = 0x70} m0 in bytes
   where
-    loop :: State -> Asm a -> (State, a, [Word8])
+    loop :: State -> Asm i j a -> (State, a, [Word8])
     loop s m0 = case m0 of
       Pure v -> (s,v,[])
       Bind m f ->

@@ -34,14 +34,13 @@ module Asm
 
   ) where
 
+import Prelude hiding ((>>=),(>>),return,pure,fail)
+
+import Assemble (Asm(..),assemble)
 import Data.Bits (shiftR,(.&.))
 import Data.ByteString.Internal (c2w)
-import Data.Kind (Type)
 import Data.Word (Word8,Word16)
-import Prelude hiding ((>>=),(>>),return,pure,fail)
-import qualified Assemble (Asm(..),assemble)
-
-type State (a::VAL) (x::VAL) (y::VAL) (s::STACK) = 'Code ('Cpu a x y s)
+import Effect
 
 newtype MemAddr (g :: GENERATED) = MA Word16 deriving (Num)
 newtype ZpAddr (v :: VAL) = ZP Word8 deriving (Num)
@@ -51,15 +50,6 @@ newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
 newtype IndirectY g = IndirectY (ZpAddr g)
-
-data VAL = Value Type | ReturnAddr CPU
-data STACK = Cons { _head :: VAL, _tail :: STACK }
-data CPU = Cpu { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
-data GENERATED = NotExecutable | Code { _cpu :: CPU }
-
-data Asm ( pre :: GENERATED) ( post :: GENERATED) v = Asm { unAsm :: Assemble.Asm v }
-
-assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
 (>>=)
   :: Asm g1 g2 v1
@@ -125,26 +115,25 @@ class Lda arg where lda :: arg -> Asm (State o x y s) (State a x y s) ()
 lo :: MemAddr g -> Word8 -- TODO; erm?
 hi :: MemAddr g -> Word8
 
-assemble origin (Asm m) = Assemble.assemble origin m
-(>>=) (Asm m) f = Asm (Assemble.Bind m $ \v -> unAsm (f v))
+(>>=) = Bind
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
 
-return v = Asm (Assemble.Pure v)
-pure = return
-mfix f = Asm (Assemble.Mfix (unAsm . f))
+return = Pure
+pure = Pure
+mfix = Mfix
 fail = error "WrappedAsm.fail"
 
-allocateZP = Asm Assemble.AllocateZP >>= \b -> pure (ZP b)
-labelPermissive = Asm Assemble.Label >>= \a -> pure (MA a)
+allocateZP = AllocateZP >>= \b -> pure (ZP b)
+labelPermissive = Label >>= \a -> pure (MA a)
 
 lo (MA a) = loByte a
 hi (MA a) = hiByte a
 
-equb bs = Asm (Assemble.Emit bs)
-equs str = Asm (Assemble.Emit (map c2w str))
+equb bs = Emit bs
+equs str = Emit (map c2w str)
 
-and_i b = op1 0x29 b
-beq a = branch 0xf0 a
+and_i = op1 0x29
+beq = branch 0xf0
 bne = branch 0xd0
 inc_m (MA a) = op2 0xee a
 inc_z (ZP b) = op1 0xe6 b
@@ -170,16 +159,16 @@ instance Lda (ZeroPage g) where lda (ZeroPage (ZP b)) = op1 0xa5 b
 
 branch :: Word8 -> MemAddr g -> Asm g g2 ()
 branch opcode (MA a) =
-  Asm Assemble.Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
+  Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
 
 op0 :: Word8 -> Asm g g2 ()
-op0 code = Asm (Assemble.Emit [code])
+op0 code = Emit [code]
 
 op1 :: Word8 -> Word8 -> Asm g g2 ()
-op1 code b = Asm (Assemble.Emit [code, b])
+op1 code b = Emit [code, b]
 
 op2 :: Word8 -> Word16 -> Asm g g2 ()
-op2 code a = Asm (Assemble.Emit [code, loByte a, hiByte a])
+op2 code a = Emit [code, loByte a, hiByte a]
 
 loByte,hiByte :: Word16 -> Word8
 loByte a = fromIntegral (a .&. 0xff)

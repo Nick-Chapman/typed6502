@@ -29,7 +29,7 @@ code = assemble 0x2000 $ Asm.mdo
       jsr printMessage
 
   jmp main
-  --jmp main -- Is type error for unreachable code. Good
+  --jmp main -- TEST: Is type error for unreachable code. Good
 
   --frameCount <- labelData; equb [0]
 
