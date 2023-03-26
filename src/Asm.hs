@@ -36,16 +36,23 @@ module Asm
 
 import Data.Bits (shiftR,(.&.))
 import Data.ByteString.Internal (c2w)
+import Data.Kind (Type)
 import Data.Word (Word8,Word16)
-import Phantom
 import Prelude hiding ((>>=),(>>),return,pure,fail)
 import qualified Assemble (Asm(..),assemble)
+
+type State (a::VAL) (x::VAL) (y::VAL) (s::STACK) = 'Code ('Cpu a x y s)
 
 newtype ZeroPage g = ZeroPage (ZpAddr g)
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
 newtype IndirectY g = IndirectY (ZpAddr g)
+
+data VAL = Value Type | ReturnAddr CPU
+data STACK = Cons { _head :: VAL, _tail :: STACK }
+data CPU = Cpu { _acc :: VAL, _xreg :: VAL, _yreg :: VAL, _stack :: STACK }
+data GENERATED = NotExecutable | Code { _cpu :: CPU }
 
 data Asm ( pre :: GENERATED) ( post :: GENERATED) v = Asm { unAsm :: Assemble.Asm v }
 
