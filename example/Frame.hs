@@ -5,7 +5,7 @@ import Prelude hiding (pure)
 import Asm
 import Data.Word (Word8)
 
-copy16i :: MemAddr ('Data v) -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
+copy16i :: MemAddr v -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
   lda (lo a) ; sta_z v
   lda (hi a) ; sta_z (v+1)
@@ -73,7 +73,7 @@ code = assemble 0x2000 $ Asm.mdo
 
   pure ()
 
-makePrintHexA :: Asm ('Data v) ('Data v) (MemAddr (State a x y s))
+makePrintHexA :: Asm ('Data v1) ('Data v2) (MemAddr (State a x y s))
 makePrintHexA = Asm.mdo
   entry <- labelEntry
   pha ; lda '['; jsr osasci
@@ -94,7 +94,7 @@ makePrintHexA = Asm.mdo
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZpAddr g -> Asm ('Data v) ('Data v) (MemAddr ('Code ('Cpu a1 x1 o ('Cons ('ReturnAddr ('Cpu a1 x1 y1 s)) s))))
+makePrintMessage :: ZpAddr v1 -> Asm ('Data v2) ('Data v3) (MemAddr ('Code ('Cpu a x1 o ('Cons ('ReturnAddr ('Cpu a x1 y1 s)) s))))
 makePrintMessage msgPtr = Asm.mdo
   entry <- labelEntry
   ldy_i 0

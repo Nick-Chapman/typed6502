@@ -1,6 +1,6 @@
 
 module Asm
-  ( Asm, VAL(..), STACK(..), CPU(..), GENERATED(..), State
+  ( Asm, VAL(..), STACK(..), CPU(..), State
   , assemble
   , (>>=), (>>), return, pure, mfix, fail
   , ZpAddr, MemAddr
@@ -42,14 +42,14 @@ import Data.ByteString.Internal (c2w)
 import Data.Word (Word8,Word16)
 import Effect
 
-newtype MemAddr (g :: GENERATED) = MA Word16 deriving (Num)
+newtype MemAddr (g :: VAL) = MA Word16 deriving (Num)
 newtype ZpAddr (v :: VAL) = ZP Word8 deriving (Num)
 
-newtype ZeroPage g = ZeroPage (ZpAddr g)
+newtype ZeroPage v = ZeroPage (ZpAddr v)
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
-newtype IndirectY g = IndirectY (ZpAddr g)
+newtype IndirectY v = IndirectY (ZpAddr v)
 
 (>>=)
   :: Asm g1 g2 v1
@@ -68,7 +68,7 @@ fail :: Asm g1 g2 v
 
 allocateZP :: forall v g. Asm g g (ZpAddr v)
 
-labelPermissive :: Asm g_ignore g (MemAddr g) -- not exposed to user
+labelPermissive :: Asm v_ignore v (MemAddr v) -- not exposed to user
 labelEntry :: Asm ('Data v) ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
 labelCode :: Asm ('Code c) ('Code c) (MemAddr ('Code c)) -- expects fallthrough
 labelData :: Asm ('Data v) ('Data v) (MemAddr ('Data v))
@@ -77,8 +77,8 @@ labelEntry = labelPermissive
 labelCode = labelPermissive
 labelData = labelPermissive
 
-equb :: [Word8] -> Asm ('Data v) ('Data v) ()
-equs :: String -> Asm ('Data v) ('Data v) ()
+equb :: [Word8] -> Asm v v ()
+equs :: String -> Asm v v ()
 
 and_i :: Word8 -> Asm (State o x y s) (State a x y s) () -- TODO: need Immediate
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
@@ -158,7 +158,7 @@ instance Lda (IndexedX g) where lda (IndexedX (MA a)) = op2 0xbd a
 instance Lda (Absolute g) where lda (Absolute (MA a)) = op2 0xad a
 instance Lda (ZeroPage g) where lda (ZeroPage (ZP b)) = op1 0xa5 b
 
-branch :: Word8 -> MemAddr g -> Asm g g2 ()
+branch :: Word8 -> MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 branch opcode (MA a) =
   Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
 

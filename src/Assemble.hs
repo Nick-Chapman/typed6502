@@ -2,9 +2,9 @@
 module Assemble (Asm(..), assemble) where
 
 import Data.Word (Word8,Word16)
-import Effect (GENERATED)
+import Effect (VAL)
 
-data Asm ( pre :: GENERATED) ( post :: GENERATED) v where
+data Asm ( pre :: VAL) ( post :: VAL) v where
   Pure :: v -> Asm i i v
   Bind :: Asm i j v -> (v -> Asm j k w) -> Asm i k w
   Emit :: [Word8] -> Asm i j ()
