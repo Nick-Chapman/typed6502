@@ -16,7 +16,7 @@ code = assemble 0x2000 $ Asm.mdo
   msgPtr <- allocateZP
 
   let
-    --puts :: String -> Asm 'NotExecutable 'NotExecutable ()
+    -- TODO: can we put a type annotation here?
     puts str = Asm.mdo
       copy16i msg msgPtr
       jmp after
@@ -32,7 +32,7 @@ code = assemble 0x2000 $ Asm.mdo
   _mos_syncVB <- labelEntry
   lda @Word8 19
   jmp osbyte
-  --rts -- TODO: detect bug
+  --rts -- TEST: bug if added
 
   _mode1 <- labelEntry
   lda @Word8 22 ; jsr oswrch
@@ -73,7 +73,7 @@ makePrintHexA :: Asm 'NotExecutable 'NotExecutable (MemAddr (State a x y s))
 makePrintHexA = Asm.mdo
   entry <- labelEntry
   pha ; lda '['; jsr osasci
-  pla -- TODO: comment out to see bug
+  pla -- TODO: comment should be type err -- but not because osasci is too unspecific
   pha
   and_i 0xf0
   lsr_a; lsr_a; lsr_a; lsr_a; tax
@@ -84,6 +84,7 @@ makePrintHexA = Asm.mdo
   lda (IndexedX digits)
   jsr osasci
   pha; lda ']'; jsr osasci; pla
+  --pha -- TEST: this is a type error
   rts
   digits <- labelData
   equs "0123456789abcdef"

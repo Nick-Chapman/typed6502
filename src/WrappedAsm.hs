@@ -36,7 +36,7 @@ module WrappedAsm
 import Data.Word (Word8,Word16)
 import Phantom
 import Prelude hiding ((>>=),(>>),return,pure,fail)
-import qualified SimpleAsm as Simple
+import qualified SimpleAsm as Simple -- TODO: avoid layering on Simple; just confusing!
 
 newtype Absolute g = Absolute (MemAddr g)
 newtype IndexedX g = IndexedX (MemAddr g)

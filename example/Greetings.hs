@@ -14,7 +14,7 @@ code = assemble 0x2000 $ Asm.mdo
   hello <- labelData; equs "Hello!\r"; equb [0]
   goodbye <- labelData; equs "Goodbye!\r"; equb [0]
 
-  main <- labelEntry -- TODO: should be bug if labelled as data
+  main <- labelEntry -- TEST: Bug if labelled as data
   copy16i hello ptr; jsr outputMessage
   copy16i goodbye ptr; jsr outputMessage
 
