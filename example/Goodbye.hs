@@ -9,21 +9,21 @@ code = assemble 0x2000 $ Asm.mdo
 
   jmp main
 
-  mytext <- label
+  mytext <- labelData
   equs "Goodbye!\r"; equb [0]
 
-  main <- label
+  main <- labelEntry
   ldy_i 0
 
-  loop <- label
+  loop <- labelCode
   lda (IndexedY mytext)
   beq finished
   jsr osasci
   iny
   bne loop
-  finished <- label
+  finished <- labelCode
 
-  spin <- label
+  spin <- labelCode
   jmp spin
 
   where

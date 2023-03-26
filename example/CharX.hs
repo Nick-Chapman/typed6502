@@ -8,7 +8,7 @@ code :: [Word8]
 code = assemble 0x2000 $ Asm.do
   lda 'X'
   jsr osasci
-  spin <- label
+  spin <- labelCode
   jmp spin
 
   where

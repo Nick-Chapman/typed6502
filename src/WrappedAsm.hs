@@ -4,7 +4,13 @@ module WrappedAsm
   , assemble
   , (>>=), (>>), return, pure, mfix, fail
   , ZeroPage, MemAddr
-  , allocateZP, label, lo, hi, equb, equs
+  , allocateZP
+
+  , labelCode
+  , labelEntry
+  , labelData
+
+  , lo, hi, equb, equs
   , Absolute(..), IndexedX(..), IndexedY(..), IndirectY(..)
 
   , and_i
@@ -37,7 +43,7 @@ data Asm ( pre :: GENERATED) ( post :: GENERATED) v =
   Asm { unAsm :: Simple.Asm0 v }
 
 type ZeroPage (v :: VAL) = Simple.ZeroPage0
-type MemAddr (g :: GENERATED) = Simple.MemAddr0
+type MemAddr (g :: GENERATED) = Simple.MemAddr0 -- TODO: bug here?
 
 assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
@@ -58,14 +64,17 @@ fail :: Asm g1 g2 v
 
 allocateZP :: forall v g. Asm g g (ZeroPage v)
 
--- TODO: labelCode,labelData
+labelPermissive :: Asm g_ignore g (MemAddr g) -- not exposed to user
+labelEntry :: Asm 'NotExecutable ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
+labelCode :: Asm ('Code c) ('Code c) (MemAddr ('Code c)) -- expects fallthrough
+labelData :: Asm 'NotExecutable 'NotExecutable (MemAddr 'NotExecutable)
 
---label :: Asm g g (MemAddr g)
-label :: Asm g_ignore g (MemAddr g)
+labelEntry = labelPermissive
+labelCode = labelPermissive
+labelData = labelPermissive
 
 equb :: [Word8] -> Asm 'NotExecutable 'NotExecutable ()
 equs :: String -> Asm 'NotExecutable 'NotExecutable ()
-
 
 and_i :: Word8 -> Asm (State o x y s) (State a x y s) () -- TODO: need Immediate
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
@@ -113,7 +122,7 @@ fail = error "WrappedAsm.fail"
 
 
 allocateZP = Asm Simple.allocateZP
-label = Asm Simple.label
+labelPermissive = Asm Simple.label
 lo = Simple.lo
 hi = Simple.hi
 equb = lift1 Simple.equb

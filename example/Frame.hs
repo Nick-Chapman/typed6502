@@ -20,26 +20,26 @@ code = assemble 0x2000 $ Asm.mdo
     puts str = Asm.mdo
       copy16i msg msgPtr
       jmp after
-      msg <- label; equs str; equb [0]
-      after <- label
+      msg <- labelData; equs str; equb [0]
+      after <- labelEntry
       jsr printMessage
 
   jmp main
   --jmp main -- Is type error for unreachable code. Good
 
-  frameCount <- label; equb [0]
+  frameCount <- labelData; equb [0]
 
-  _mos_syncVB <- label
+  _mos_syncVB <- labelEntry
   lda @Word8 19
   jmp osbyte
   --rts -- TODO: detect bug
 
-  _mode1 <- label
+  _mode1 <- labelEntry
   lda @Word8 22 ; jsr oswrch
   lda @Word8 1 ; jsr oswrch
   rts
 
-  _cursorOff <- label
+  _cursorOff <- labelEntry
   lda @Word8 23 ; jsr oswrch
   lda @Word8 1 ; jsr oswrch
   lda @Word8 0 ; jsr oswrch
@@ -54,12 +54,12 @@ code = assemble 0x2000 $ Asm.mdo
 
   printMessage <- makePrintMessage msgPtr
 
-  main <- label
+  main <- labelEntry
 
   jsr _mode1
   jsr _cursorOff
 
-  loop <- label
+  loop <- labelCode
   jsr _mos_syncVB
   position 1 1; puts "Frame : "; lda (Absolute frameCount); jsr printHexA
   inc_m frameCount
@@ -69,9 +69,9 @@ code = assemble 0x2000 $ Asm.mdo
 
   pure ()
 
-makePrintHexA :: Asm g1 'NotExecutable (MemAddr (State a x y s))
+makePrintHexA :: Asm 'NotExecutable 'NotExecutable (MemAddr (State a x y s))
 makePrintHexA = Asm.mdo
-  entry <- label
+  entry <- labelEntry
   pha ; lda '['; jsr osasci
   pla -- TODO: comment out to see bug
   pha
@@ -85,21 +85,21 @@ makePrintHexA = Asm.mdo
   jsr osasci
   pha; lda ']'; jsr osasci; pla
   rts
-  digits <- label
+  digits <- labelData
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZeroPage v -> Asm g1 'NotExecutable (MemAddr (State a x o s))
+makePrintMessage :: ZeroPage v -> Asm 'NotExecutable 'NotExecutable (MemAddr (State a x o s))
 makePrintMessage msgPtr = Asm.mdo
-  entry <- label
+  entry <- labelEntry
   ldy_i 0
-  loop <- label
+  loop <- labelCode
   lda (IndirectY msgPtr)
   beq done
   jsr osasci
   iny
   bne loop
-  done <- label
+  done <- labelCode
   rts
   pure entry
 

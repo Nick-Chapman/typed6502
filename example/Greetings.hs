@@ -11,25 +11,25 @@ code = assemble 0x2000 $ Asm.mdo
 
   jmp main
 
-  hello <- label; equs "Hello!\r"; equb [0]
-  goodbye <- label; equs "Goodbye!\r"; equb [0]
+  hello <- labelData; equs "Hello!\r"; equb [0]
+  goodbye <- labelData; equs "Goodbye!\r"; equb [0]
 
-  main <- label
+  main <- labelEntry -- TODO: should be bug if labelled as data
   copy16i hello ptr; jsr outputMessage
   copy16i goodbye ptr; jsr outputMessage
 
-  spin <- label
+  spin <- labelCode
   jmp spin
 
-  outputMessage <- label
+  outputMessage <- labelEntry
   ldy_i 0
-  loop <- label
+  loop <- labelCode
   lda (IndirectY ptr)
   beq finished
   jsr osasci
   iny
   bne loop
-  finished <- label
+  finished <- labelCode
   rts
 
   where
