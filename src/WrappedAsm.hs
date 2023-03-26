@@ -34,10 +34,12 @@ module WrappedAsm
 
   ) where
 
+import Data.Bits (shiftR,(.&.))
+import Data.ByteString.Internal (c2w)
 import Data.Word (Word8,Word16)
 import Phantom
 import Prelude hiding ((>>=),(>>),return,pure,fail)
-import qualified SimpleAsm as Simple -- TODO: avoid layering on Simple; just confusing!
+import qualified Assemble (Asm(..),assemble)
 
 newtype ZeroPage g = ZeroPage (ZpAddr g)
 newtype Absolute g = Absolute (MemAddr g)
@@ -45,11 +47,13 @@ newtype IndexedX g = IndexedX (MemAddr g)
 newtype IndexedY g = IndexedY (MemAddr g)
 newtype IndirectY g = IndirectY (ZpAddr g)
 
-data Asm ( pre :: GENERATED) ( post :: GENERATED) v =
-  Asm { unAsm :: Simple.Asm0 v }
+data Asm ( pre :: GENERATED) ( post :: GENERATED) v = Asm { unAsm :: Assemble.Asm v }
 
-newtype MemAddr (g :: GENERATED) = MA Simple.MemAddr0 deriving Num
-newtype ZpAddr (v :: VAL) = ZP Simple.ZpAddr0 deriving Num
+newtype MemAddr0 = MemAddr Word16 deriving (Num)
+newtype ZpAddr0 = ZpAddr Word8 deriving (Num)
+
+newtype MemAddr (g :: GENERATED) = MA MemAddr0 deriving Num
+newtype ZpAddr (v :: VAL) = ZP ZpAddr0 deriving Num
 
 assemble :: Word16 -> Asm ('Code c) 'NotExecutable () -> [Word8]
 
@@ -117,59 +121,62 @@ class Lda arg where lda :: arg -> Asm q r ()
 lo :: MemAddr g -> Word8 -- TODO; erm?
 hi :: MemAddr g -> Word8
 
-
-assemble origin (Asm m) = Simple.assemble origin m
-(>>=) (Asm m) f = Asm ((Simple.>>=) m $ \v -> unAsm (f v))
+assemble origin (Asm m) = Assemble.assemble origin m
+(>>=) (Asm m) f = Asm (Assemble.Bind m $ \v -> unAsm (f v))
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
 
-return v = Asm (Simple.return v)
+return v = Asm (Assemble.Pure v)
 pure = return
-mfix f = Asm (Simple.mfix (unAsm . f))
+mfix f = Asm (Assemble.Mfix (unAsm . f))
 fail = error "WrappedAsm.fail"
 
+allocateZP = Asm Assemble.AllocateZP >>= \b -> pure (ZP (ZpAddr b))
+labelPermissive = Asm Assemble.Label >>= \a -> pure (MA (MemAddr a))
 
-mapA :: (a -> b) -> Asm g1 g2 a -> Asm g1 g2 b
-mapA f m = m >>= \x -> pure (f x)
+lo (MA (MemAddr a)) = loByte a
+hi (MA (MemAddr a)) = hiByte a
 
-allocateZP = mapA ZP (Asm Simple.allocateZP)
-labelPermissive = mapA MA (Asm Simple.label)
-lo (MA a) = Simple.lo a
-hi (MA a) = Simple.hi a
-equb = lift1 Simple.equb
-equs = lift1 Simple.equs
-and_i = lift1 Simple.and_i
-beq (MA a) = Asm (Simple.beq a)
-bne (MA a) = Asm (Simple.bne a)
-inc_m (MA a) = Asm (Simple.inc_m a)
-inc_z (ZP a) = Asm (Simple.inc_z a)
-iny = Asm Simple.iny
-jmp (MA a) = Asm (Simple.jmp a)
-jsr (MA a) = Asm (Simple.jsr a)
-ldy_i = lift1 Simple.ldy_i
-lsr_a = Asm Simple.lsr_a
-pha = Asm Simple.pha
-pla = Asm Simple.pla
-rts = Asm Simple.rts
-sta_z (ZP a) = Asm (Simple.sta_z a)
-tax = Asm Simple.tax
+equb bs = Asm (Assemble.Emit bs)
+equs str = Asm (Assemble.Emit (map c2w str))
 
-instance Lda Word8 where lda = lift1 Simple.lda
-instance Lda Char where lda = lift1 Simple.lda
+and_i b = op1 0x29 b
+beq a = branch 0xf0 a
+bne = branch 0xd0
+inc_m (MA (MemAddr a)) = op2 0xee a
+inc_z (ZP (ZpAddr b)) = op1 0xe6 b
+iny = op0 0xc8
+jmp (MA (MemAddr a)) = op2 0x4c a
+jsr (MA (MemAddr a)) = op2 0x20 a
+ldy_i = op1 0xa0
+lsr_a = op0 0x4a
+pha = op0 0x48
+pla = op0 0x68
+rts = op0 0x60
+sta_z (ZP (ZpAddr b)) = op1 0x85 b
+tax = op0 0xaa
 
-instance Lda (IndirectY g) where
-  lda (IndirectY (ZP x)) = Asm (Simple.lda (Simple.IndirectY x))
+instance Lda Word8 where lda = op1 0xa9
+instance Lda Char where lda c = lda (c2w c)
 
-instance Lda (IndexedY g) where
-  lda (IndexedY (MA x)) = Asm (Simple.lda (Simple.IndexedY x))
+instance Lda (IndirectY g) where lda (IndirectY (ZP (ZpAddr b))) = op1 0xb1 b
+instance Lda (IndexedY g) where lda (IndexedY (MA (MemAddr a))) = op2 0xb9 a
+instance Lda (IndexedX g) where lda (IndexedX (MA (MemAddr a))) = op2 0xbd a
+instance Lda (Absolute g) where lda (Absolute (MA (MemAddr a))) = op2 0xad a
+instance Lda (ZeroPage g) where lda (ZeroPage (ZP (ZpAddr b))) = op1 0xa5 b
 
-instance Lda (IndexedX g) where
-  lda (IndexedX (MA x)) = Asm (Simple.lda (Simple.IndexedX x))
+branch :: Word8 -> MemAddr g -> Asm g g2 ()
+branch opcode (MA (MemAddr a)) =
+  Asm Assemble.Label >>= \here -> op1 opcode (fromIntegral (a - here - 2))
 
-instance Lda (Absolute g) where
-  lda (Absolute (MA x)) = Asm (Simple.lda (Simple.Absolute x))
+op0 :: Word8 -> Asm g g2 ()
+op0 code = Asm (Assemble.Emit [code])
 
-instance Lda (ZeroPage g) where
-  lda (ZeroPage (ZP x)) = Asm (Simple.lda (Simple.ZeroPage x))
+op1 :: Word8 -> Word8 -> Asm g g2 ()
+op1 code b = Asm (Assemble.Emit [code, b])
 
-lift1 :: (a -> Simple.Asm0 v) -> a -> Asm p q v
-lift1 f x = Asm (f x)
+op2 :: Word8 -> Word16 -> Asm g g2 ()
+op2 code a = Asm (Assemble.Emit [code, loByte a, hiByte a])
+
+loByte,hiByte :: Word16 -> Word8
+loByte a = fromIntegral (a .&. 0xff)
+hiByte a = fromIntegral (a `shiftR` 8)
