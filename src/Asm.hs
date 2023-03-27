@@ -9,7 +9,6 @@ module Asm
 
   , allocateZP
 
-  , label -- permissive, TODO: remove
   , labelCode
   , labelEntry
   , labelData
@@ -87,12 +86,10 @@ fail :: Asm g1 g2 v
 allocateZP :: forall v g. Asm g g (ZpAddr v)
 
 labelPermissive :: Asm v_ignore v (MemAddr v) -- not exposed to user
-label :: Asm v_ignore v (MemAddr v) -- TEMP
 labelEntry :: Asm ('Data v) ('Code c) (MemAddr ('Code c)) -- entry code (no fallthrough)
 labelCode :: Asm ('Code c) ('Code c) (MemAddr ('Code c)) -- expects fallthrough
 labelData :: Asm ('Data v1) ('Data v) (MemAddr ('Data v))
 
-label = labelPermissive
 labelEntry = labelPermissive
 labelCode = labelPermissive
 labelData = labelPermissive

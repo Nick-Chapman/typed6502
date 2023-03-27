@@ -40,17 +40,17 @@ code = assemble 0x2000 $ Asm.mdo
   bne left
   rts
 
-  left <- label
+  left <- labelEntry
   cmp_c '<' ; bne right
   dec_z mp
   jmp advance
 
-  right <- label
+  right <- labelEntry
   cmp_c '>' ; bne plus
   inc_z mp
   jmp advance
 
-  plus <- label
+  plus <- labelEntry
   cmp_c '+' ; bne minus
   lda (IndirectY mp)
   clc
@@ -58,7 +58,7 @@ code = assemble 0x2000 $ Asm.mdo
   sta (IndirectY mp)
   jmp advance
 
-  minus <- label
+  minus <- labelEntry
   cmp_c '-' ; bne comma
   lda (IndirectY mp)
   sec
@@ -66,80 +66,80 @@ code = assemble 0x2000 $ Asm.mdo
   sta (IndirectY mp)
   jmp advance
 
-  comma <- label
+  comma <- labelEntry
   cmp_c ',' ; bne dot
   jsr osrdch
   sta (IndirectY mp)
   jmp advance
 
-  dot <- label
+  dot <- labelEntry
   cmp_c '.' ; bne open
   lda (IndirectY mp)
   cmp_c '\n' ; bne print
   clc
   adc (immediate 3)
 
-  print <- label
+  print <- labelCode
   jsr oswrch
   jmp advance
 
-  open <- label
+  open <- labelEntry
   cmp_c '[' ; bne close
   lda (IndirectY mp)
   bne advance
   ldx_i (immediate 1)
 
-  forward <- label
+  forward <- labelCode
   jsr incip
   lda (IndirectY ip)
   cmp_c '[' ; bne forward2
   inx
   jmp forward
 
-  forward2 <- label
+  forward2 <- labelEntry
   cmp_c ']' ; bne forward
   dex
   bne forward
   jmp advance
 
-  close <- label
+  close <- labelEntry
 
   cmp_c ']' ; bne advance
   lda (IndirectY mp)
   beq done
   ldx_i (immediate 1)
 
-  backward <- label
+  backward <- labelCode
   jsr decip
   lda (IndirectY ip)
   cmp_c ']' ; bne backward2
   inx
   jmp backward
 
-  backward2 <- label
+  backward2 <- labelEntry
   cmp_c '[' ; bne backward
   dex
   bne backward
-  done <- label
+  done <- labelCode
   jmp advance
 
-  incip <- label
+  incip <- labelEntry
   inc_z ip
   lda (ZeroPage ip)
   bne incip2
   inc_z (ip+1)
-  incip2 <- label
+  incip2 <- labelCode
   rts
 
-  decip <- label
+  decip <- labelEntry
   lda (ZeroPage ip)
   bne decip2
   dec_z (ip+1)
-  decip2 <- label
+  decip2 <- labelCode
   dec_z ip
   rts
 
-  prog <- label --Data -- TODO: use labels with intent
+  prog <- labelData
   equs ">++++++++++>+>+[[+++++[>++++++++<-]>.<++++++[>--------<-]+<<<]>.>>[[-]<[>+<-]>>[<<+>+>-]<[>+<-[>+<-[>+<-[>+<-[>+<-[>+<- [>+<-[>+<-[>+<-[>[-]>+>+<<<-[>+<-]]]]]]]]]]]+>>>]<<<]"
   equb [0]
 
