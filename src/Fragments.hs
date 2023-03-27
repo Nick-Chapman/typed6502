@@ -12,7 +12,7 @@ top = ()
     _frag1 = Asm.do
       v <- allocateZP
       lda (immChar 'c')
-      sta_z v
+      sta (ZeroPage v)
       --lda (immediate 11) -- TEST: this should be a type error
-      sta_z v
+      sta (ZeroPage v)
 

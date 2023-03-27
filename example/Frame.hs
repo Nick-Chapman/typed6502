@@ -7,8 +7,8 @@ import Data.Word (Word8)
 
 copy16i :: MemAddr v -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
-  lda (lo a) ; sta_z v
-  lda (hi a) ; sta_z (v+1)
+  lda (lo a) ; sta (ZeroPage v)
+  lda (hi a) ; sta (ZeroPage (v+1))
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo

@@ -14,13 +14,13 @@ code = assemble 0x2000 $ Asm.mdo
   _ <- allocateZP
 
   lda (lo prog)
-  sta_z ip
+  sta (ZeroPage ip)
   lda (hi prog)
-  sta_z (ip+1)
+  sta (ZeroPage (ip+1))
   lda (lo mem)
-  sta_z mp
+  sta (ZeroPage mp)
   lda (hi mem)
-  sta_z (mp+1)
+  sta (ZeroPage (mp+1))
   ldy_i (immediate 0)
   lda (immediate 0)
   ldx_i (immediate 0xff)

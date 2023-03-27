@@ -41,7 +41,6 @@ module Asm
   , sbc
   , sec
   , sta
-  , sta_z
   , tax
 
   ) where
@@ -129,7 +128,6 @@ ldx_i :: Immediate y -> Asm (State a x o s) (State a x y s) ()
 ldy_i :: Immediate y -> Asm (State a x o s) (State a x y s) ()
 lsr_a :: Asm g g ()
 sec :: Asm g g ()
-sta_z :: ZpAddr (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 tax :: Asm (State a x y s) (State a a y s) ()
 
 jsr :: MemAddr (State a1 x1 y1 ('Cons ('ReturnAddr ('Cpu a2 x2 y2 s2)) s1))
@@ -185,7 +183,6 @@ pha = op0 0x48
 pla = op0 0x68
 rts = op0 0x60
 sec = op0 0x38
-sta_z (ZP b) = op1 0x85 b
 tax = op0 0xaa
 
 instance Adc Immediate where adc (Immediate b) = op1 0x69 b
@@ -202,6 +199,8 @@ instance Lda IndirectY where lda (IndirectY (ZP b)) = op1 0xb1 b
 instance Sta Absolute where sta (Absolute (MA a)) = op2 0x8d a
 instance Sta IndexedX where sta (IndexedX (MA a)) = op2 0x9d a
 instance Sta IndirectY where sta (IndirectY (ZP b)) = op1 0x91 b
+
+instance Sta ZeroPage where sta (ZeroPage (ZP b)) = op1 0x85 b
 
 branch :: Word8 -> MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 branch opcode (MA a) =
