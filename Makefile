@@ -36,5 +36,4 @@ _build/%-haskell.bytes: $(exe) Makefile
 	@ $(exe) $* $@
 
 $(exe): src/*.hs example/*.hs Makefile
-	#stack build; touch $(exe) # TODO: rm if fails
 	stack build || rm $(exe)
