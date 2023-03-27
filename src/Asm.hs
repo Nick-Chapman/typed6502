@@ -17,15 +17,14 @@ module Asm
   , ZeroPage(..), Absolute(..), IndexedX(..), IndexedY(..), IndirectY(..)
 
   , adc
-  , and_i
+  , and
   , beq
   , bne
   , clc
   , cmp_c
-  , dec_z
+  , dec
   , dex
-  , inc_m
-  , inc_z
+  , inc
   , inx
   , iny
   , jmp
@@ -44,7 +43,7 @@ module Asm
 
   ) where
 
-import Prelude hiding ((>>=),(>>),return,pure,fail)
+import Prelude hiding ((>>=),(>>),return,pure,fail,and)
 
 import Assemble (Asm(..),assemble)
 import Data.Bits (shiftR,(.&.))
@@ -98,22 +97,21 @@ equb :: [Word8] -> Asm v v ()
 equs :: String -> Asm v v ()
 
 class Adc mode where adc :: mode a -> Asm (State a x y s) (State a x y s) ()
+class And mode where and :: mode a -> Asm (State a x y s) (State a x y s) ()
 class Lda mode where lda :: mode a -> Asm (State o x y s) (State a x y s) ()
 class Ldx mode where ldx :: mode x -> Asm (State a o y s) (State a x y s) ()
 class Ldy mode where ldy :: mode y -> Asm (State a x o s) (State a x y s) ()
 class Sbc mode where sbc :: mode a -> Asm (State a x y s) (State a x y s) ()
 class Sta mode where sta :: mode a -> Asm (State a x y s) (State a x y s) ()
 
+class Dec arg where dec :: arg -> Asm g g ()
+class Inc arg where inc :: arg -> Asm g g ()
 
-and_i :: Immediate a -> Asm (State a x y s) (State a x y s) ()
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 bne :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 clc :: Asm g g ()
 cmp_c :: Char -> Asm g g ()
-dec_z :: ZpAddr ('Data v) -> Asm g g ()
 dex :: Asm g g ()
-inc_m :: MemAddr ('Data v) -> Asm g g ()
-inc_z :: ZpAddr ('Data v) -> Asm g g ()
 inx :: Asm g g ()
 iny :: Asm g g ()
 jmp :: MemAddr ('Code c) -> Asm ('Code c) ('Data v) ()
@@ -154,15 +152,11 @@ hi (MA a) = Immediate (hiByte a)
 equb bs = Emit bs
 equs str = Emit (map c2w str)
 
-and_i (Immediate b) = op1 0x29 b
 beq = branch 0xf0
 bne = branch 0xd0
 clc = op0 0x18
 cmp_c c = op1 0xc9 (c2w c)
-dec_z (ZP b) = op1 0xc6 b
 dex = op0 0xca
-inc_m (MA a) = op2 0xee a
-inc_z (ZP b) = op1 0xe6 b
 inx = op0 0xe8
 iny = op0 0xc8
 jmp (MA a) = op2 0x4c a
@@ -174,7 +168,10 @@ rts = op0 0x60
 sec = op0 0x38
 tax = op0 0xaa
 
+
 instance Adc Immediate where adc (Immediate b) = op1 0x69 b
+
+instance And Immediate where and (Immediate b) = op1 0x29 b
 
 instance Sbc Immediate where sbc (Immediate b) = op1 0xe9 b
 
@@ -193,6 +190,9 @@ instance Sta Absolute where sta (Absolute (MA a)) = op2 0x8d a
 instance Sta IndexedX where sta (IndexedX (MA a)) = op2 0x9d a
 instance Sta IndirectY where sta (IndirectY (ZP b)) = op1 0x91 b
 
+instance Dec (ZeroPage v) where dec (ZeroPage (ZP b)) = op1 0xc6 b
+instance Inc (ZeroPage v) where inc (ZeroPage (ZP b)) = op1 0xe6 b
+--instance Inc (Absolute v) where inc (Absolute (MA a)) = op2 0xee a
 
 branch :: Word8 -> MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 branch opcode (MA a) =

@@ -42,12 +42,12 @@ code = assemble 0x2000 $ Asm.mdo
 
   left <- labelEntry
   cmp_c '<' ; bne right
-  dec_z mp
+  dec (ZeroPage mp)
   jmp advance
 
   right <- labelEntry
   cmp_c '>' ; bne plus
-  inc_z mp
+  inc (ZeroPage mp)
   jmp advance
 
   plus <- labelEntry
@@ -124,19 +124,19 @@ code = assemble 0x2000 $ Asm.mdo
   jmp advance
 
   incip <- labelEntry
-  inc_z ip
+  inc (ZeroPage ip)
   lda (ZeroPage ip)
   bne incip2
-  inc_z (ip+1)
+  inc (ZeroPage (ip+1))
   incip2 <- labelCode
   rts
 
   decip <- labelEntry
   lda (ZeroPage ip)
   bne decip2
-  dec_z (ip+1)
+  dec (ZeroPage (ip+1))
   decip2 <- labelCode
-  dec_z ip
+  dec (ZeroPage ip)
   rts
 
   prog <- labelData

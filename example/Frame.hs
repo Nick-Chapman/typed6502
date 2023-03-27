@@ -1,7 +1,7 @@
 
 module Frame (code) where
 
-import Prelude hiding (pure)
+import Prelude hiding (pure,and)
 import Asm
 import Data.Word (Word8)
 
@@ -66,7 +66,7 @@ code = assemble 0x2000 $ Asm.mdo
   loop <- labelCode
   jsr _mos_syncVB
   position 1 1; puts "Frame : "; lda (ZeroPage frameCount); jsr printHexA
-  inc_z frameCount
+  inc (ZeroPage frameCount)
   jmp loop
 
   printHexA <- makePrintHexA
@@ -79,12 +79,12 @@ makePrintHexA = Asm.mdo
   pha ; lda (immChar '['); jsr osasci
   pla -- TODO: comment should be type err -- but not because osasci is too unspecific
   pha
-  and_i 0xf0
+  and (immediate 0xf0)
   lsr_a; lsr_a; lsr_a; lsr_a; tax
   lda (IndexedX digits)
   jsr osasci
   pla
-  and_i 0x0f; tax
+  and (immediate 0x0f); tax
   lda (IndexedX digits)
   jsr osasci
   pha; lda (immChar ']'); jsr osasci; pla
