@@ -105,7 +105,7 @@ jsr :: MemAddr (State a1 x1 y1 ('Cons ('ReturnAddr ('Cpu a2 x2 y2 s2)) s1))
     -> Asm (State a1 x1 y1 s1)
            (State a2 x2 y2 s2) ()
 
-ldy_i :: Immediate a -> Asm (State a x o s) (State a x y s) ()
+ldy_i :: Immediate y -> Asm (State a x o s) (State a x y s) ()
 
 lsr_a :: Asm g g ()
 
