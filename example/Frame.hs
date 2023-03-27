@@ -7,8 +7,8 @@ import Data.Word (Word8)
 
 copy16i :: MemAddr v -> ZpAddr a -> Asm (State o x y s) (State a x y s) ()
 copy16i a v = Asm.do
-  lda (immediate (lo a)) ; sta_z v
-  lda (immediate (hi a)) ; sta_z (v+1)
+  lda (lo a) ; sta_z v
+  lda (hi a) ; sta_z (v+1)
 
 code :: [Word8]
 code = assemble 0x2000 $ Asm.mdo
@@ -94,7 +94,7 @@ makePrintHexA = Asm.mdo
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZpAddr v1 -> Asm ('Data v2) ('Data v3) (MemAddr ('Code ('Cpu a x1 o ('Cons ('ReturnAddr ('Cpu a x1 y1 s)) s))))
+makePrintMessage :: ZpAddr a -> Asm ('Data v1) ('Data v2) (MemAddr ('Code ('Cpu a x1 o ('Cons ('ReturnAddr ('Cpu a x1 y1 s)) s))))
 makePrintMessage msgPtr = Asm.mdo
   entry <- labelEntry
   ldy_i 0

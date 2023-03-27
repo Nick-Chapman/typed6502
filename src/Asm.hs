@@ -122,11 +122,14 @@ sta_z :: ZpAddr (a :: VAL) -> Asm (State a x y s) (State a x y s) ()
 
 tax :: Asm (State a x y s) (State a a y s) ()
 
-class Lda arg where
-  lda :: arg -> Asm (State o x y s) (State a x y s) ()
+--class Lda arg where
+--  lda :: arg -> Asm (State o x y s) (State a x y s) ()
 
-lo :: MemAddr g -> Word8 -- TODO; erm?
-hi :: MemAddr g -> Word8
+class Lda mode where
+  lda :: mode a -> Asm (State o x y s) (State a x y s) ()
+
+lo :: MemAddr g -> Immediate a -- TODO; erm?
+hi :: MemAddr g -> Immediate a
 
 (>>=) = Bind
 (>>) asm1 asm2 = asm1 >>= \() -> asm2
@@ -139,8 +142,8 @@ fail = error "WrappedAsm.fail"
 allocateZP = AllocateZP >>= \b -> pure (ZP b)
 labelPermissive = Label >>= \a -> pure (MA a)
 
-lo (MA a) = loByte a
-hi (MA a) = hiByte a
+lo (MA a) = Immediate (loByte a)
+hi (MA a) = Immediate (hiByte a)
 
 equb bs = Emit bs
 equs str = Emit (map c2w str)
@@ -161,12 +164,12 @@ rts = op0 0x60
 sta_z (ZP b) = op1 0x85 b
 tax = op0 0xaa
 
-instance Lda (Immediate g) where lda (Immediate b) = op1 0xa9 b
-instance Lda (IndirectY g) where lda (IndirectY (ZP b)) = op1 0xb1 b
-instance Lda (IndexedY g) where lda (IndexedY (MA a)) = op2 0xb9 a
-instance Lda (IndexedX g) where lda (IndexedX (MA a)) = op2 0xbd a
-instance Lda (Absolute g) where lda (Absolute (MA a)) = op2 0xad a
-instance Lda (ZeroPage g) where lda (ZeroPage (ZP b)) = op1 0xa5 b
+instance Lda Immediate where lda (Immediate b) = op1 0xa9 b
+instance Lda IndirectY where lda (IndirectY (ZP b)) = op1 0xb1 b
+instance Lda IndexedY where lda (IndexedY (MA a)) = op2 0xb9 a
+instance Lda IndexedX where lda (IndexedX (MA a)) = op2 0xbd a
+instance Lda Absolute where lda (Absolute (MA a)) = op2 0xad a
+instance Lda ZeroPage where lda (ZeroPage (ZP b)) = op1 0xa5 b
 
 branch :: Word8 -> MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 branch opcode (MA a) =
