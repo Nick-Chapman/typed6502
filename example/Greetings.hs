@@ -22,7 +22,7 @@ code = assemble 0x2000 $ Asm.mdo
   jmp spin
 
   outputMessage <- labelEntry
-  ldy_i 0
+  ldy (immediate 0)
   loop <- labelCode
   lda (IndirectY ptr)
   beq finished

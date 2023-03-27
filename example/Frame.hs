@@ -94,10 +94,10 @@ makePrintHexA = Asm.mdo
   equs "0123456789abcdef"
   pure entry
 
-makePrintMessage :: ZpAddr a -> Asm ('Data v1) ('Data v2) (MemAddr ('Code ('Cpu a x1 o ('Cons ('ReturnAddr ('Cpu a x1 y1 s)) s))))
+makePrintMessage :: ZpAddr a -> Asm ('Data v1) ('Data v2) (MemAddr ('Code ('Cpu a x1 o ('Cons ('ReturnAddr ('Cpu a x1 ('Data Word8) s)) s))))
 makePrintMessage msgPtr = Asm.mdo
   entry <- labelEntry
-  ldy_i 0
+  ldy (immediate 0)
   loop <- labelCode
   lda (IndirectY msgPtr)
   beq done

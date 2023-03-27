@@ -31,8 +31,8 @@ module Asm
   , jmp
   , jsr
   , lda
-  , ldx_i -- TODO: classes!
-  , ldy_i
+  , ldx
+  , ldy
   , lsr_a
   , pha
   , pla
@@ -97,17 +97,13 @@ labelData = labelPermissive
 equb :: [Word8] -> Asm v v ()
 equs :: String -> Asm v v ()
 
-class Adc mode where
-  adc :: mode a -> Asm (State a x y s) (State a x y s) ()
+class Adc mode where adc :: mode a -> Asm (State a x y s) (State a x y s) ()
+class Lda mode where lda :: mode a -> Asm (State o x y s) (State a x y s) ()
+class Ldx mode where ldx :: mode x -> Asm (State a o y s) (State a x y s) ()
+class Ldy mode where ldy :: mode y -> Asm (State a x o s) (State a x y s) ()
+class Sbc mode where sbc :: mode a -> Asm (State a x y s) (State a x y s) ()
+class Sta mode where sta :: mode a -> Asm (State a x y s) (State a x y s) ()
 
-class Sbc mode where
-  sbc :: mode a -> Asm (State a x y s) (State a x y s) ()
-
-class Lda mode where
-  lda :: mode a -> Asm (State o x y s) (State a x y s) ()
-
-class Sta mode where
-  sta :: mode a -> Asm (State a x y s) (State a x y s) ()
 
 and_i :: Immediate a -> Asm (State a x y s) (State a x y s) ()
 beq :: MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
@@ -121,8 +117,6 @@ inc_z :: ZpAddr ('Data v) -> Asm g g ()
 inx :: Asm g g ()
 iny :: Asm g g ()
 jmp :: MemAddr ('Code c) -> Asm ('Code c) ('Data v) ()
-ldx_i :: Immediate y -> Asm (State a x o s) (State a x y s) ()
-ldy_i :: Immediate y -> Asm (State a x o s) (State a x y s) ()
 lsr_a :: Asm g g ()
 sec :: Asm g g ()
 tax :: Asm (State a x y s) (State a a y s) ()
@@ -173,8 +167,6 @@ inx = op0 0xe8
 iny = op0 0xc8
 jmp (MA a) = op2 0x4c a
 jsr (MA a) = op2 0x20 a
-ldx_i (Immediate b) = op1 0xa2 b
-ldy_i (Immediate b) = op1 0xa0 b
 lsr_a = op0 0x4a
 pha = op0 0x48
 pla = op0 0x68
@@ -193,11 +185,14 @@ instance Lda IndexedY where lda (IndexedY (MA a)) = op2 0xb9 a
 instance Lda IndexedX where lda (IndexedX (MA a)) = op2 0xbd a
 instance Lda IndirectY where lda (IndirectY (ZP b)) = op1 0xb1 b
 
+instance Ldx Immediate where ldx (Immediate b) = op1 0xa2 b
+instance Ldy Immediate where ldy (Immediate b) = op1 0xa0 b
+
+instance Sta ZeroPage where sta (ZeroPage (ZP b)) = op1 0x85 b
 instance Sta Absolute where sta (Absolute (MA a)) = op2 0x8d a
 instance Sta IndexedX where sta (IndexedX (MA a)) = op2 0x9d a
 instance Sta IndirectY where sta (IndirectY (ZP b)) = op1 0x91 b
 
-instance Sta ZeroPage where sta (ZeroPage (ZP b)) = op1 0x85 b
 
 branch :: Word8 -> MemAddr ('Code c) -> Asm ('Code c) ('Code c) ()
 branch opcode (MA a) =

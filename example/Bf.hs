@@ -21,9 +21,9 @@ code = assemble 0x2000 $ Asm.mdo
   sta (ZeroPage mp)
   lda (hi mem)
   sta (ZeroPage (mp+1))
-  ldy_i (immediate 0)
+  ldy (immediate 0)
   lda (immediate 0)
-  ldx_i (immediate 0xff)
+  ldx (immediate 0xff)
 
   zeromem <- labelCode
   sta (IndexedX mem)
@@ -87,7 +87,7 @@ code = assemble 0x2000 $ Asm.mdo
   cmp_c '[' ; bne close
   lda (IndirectY mp)
   bne advance
-  ldx_i (immediate 1)
+  ldx (immediate 1)
 
   forward <- labelCode
   jsr incip
@@ -107,7 +107,7 @@ code = assemble 0x2000 $ Asm.mdo
   cmp_c ']' ; bne advance
   lda (IndirectY mp)
   beq done
-  ldx_i (immediate 1)
+  ldx (immediate 1)
 
   backward <- labelCode
   jsr decip

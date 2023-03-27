@@ -13,7 +13,7 @@ code = assemble 0x2000 $ Asm.mdo
   equs "Goodbye!\r"; equb [0]
 
   main <- labelEntry
-  ldy_i 0
+  ldy (immediate 0)
 
   loop <- labelCode
   lda (IndexedY mytext)
