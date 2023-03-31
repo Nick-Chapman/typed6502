@@ -13,14 +13,29 @@ import Data.ByteString.Internal (c2w)
 lda_i = op1 (ByteOfWord 0xa9 :: LDA_i)
 lda_z = op1 (ByteOfWord 0xa5 :: LDA_z)
 tax =   op0 (ByteOfWord 0xaa :: TAX)
-tay =   op0 (ByteOfWord 0xff :: TAY) -- TODO
-txa =   op0 (ByteOfWord 0xff :: TXA) -- TODO
+-- TODO: need corrrect op codes
+tay =   op0 (ByteOfWord 0xff :: TAY)
+txa =   op0 (ByteOfWord 0xff :: TXA)
+sta_z = op1 (ByteOfWord 0xff :: STA_z)
 
-type LDA_i = forall a x y o. Byte ('Code ('Cpu o x y) ('Op1 a) ('Cpu a x y))
-type LDA_z = forall a x y o. Byte ('Code ('Cpu o x y) ('Op1 ('ZpAddr a)) ('Cpu a x y))
-type TAX   = forall a x y.   Byte ('Code ('Cpu a x y) ('Op0) ('Cpu a a y))
-type TAY   = forall a x y.   Byte ('Code ('Cpu a x y) ('Op0) ('Cpu a x a))
-type TXA   = forall a x y.   Byte ('Code ('Cpu a x y) ('Op0) ('Cpu x x y))
+type LDA_i = forall a x y o.
+  Byte ('Code ('Cpu o x y) ('Op1 a) ('Cpu a x y))
+
+type LDA_z = forall a x y o zp.
+  Byte ('Code ('Cpu o x y) ('Op1 ('ZpAddr ('Seq a zp))) ('Cpu a x y))
+
+type TAX = forall a x y.
+  Byte ('Code ('Cpu a x y) ('Op0) ('Cpu a a y))
+
+type TAY = forall a x y.
+  Byte ('Code ('Cpu a x y) ('Op0) ('Cpu a x a))
+
+type TXA = forall a x y.
+  Byte ('Code ('Cpu a x y) ('Op0) ('Cpu x x y))
+
+type STA_z = forall a x y zp.
+  Byte ('Code ('Cpu a x y) ('Op1 ('ZpAddr ('Seq a zp))) ('Cpu a x y))
+
 
 --[immediates] ----------------------------------------------------------------
 
@@ -29,6 +44,9 @@ immChar c = ByteOfWord (c2w c)
 
 immWord :: Word8 -> Byte ('Data Word8)
 immWord w = ByteOfWord w
+
+nextZ :: Byte ('ZpAddr ('Seq i is)) -> Byte ('ZpAddr is)
+nextZ ByteOfWord{w} = ByteOfWord (w + 1)
 
 --[interface]-------------------------------------------------------------
 
@@ -59,19 +77,19 @@ op0 code = Emit code
 op1 code b = do Emit code; Emit b
 
 data Interpretation
-  = ZpAddr Interpretation
+  = ZpAddr SeqInterpretation
   | Code CpuState Op CpuState
   | Data Type
 
 data Op = Op0 | Op1 { _arg :: Interpretation }
 
-data Byte (i::Interpretation) = ByteOfWord { _w :: Word8 }
+data Byte (i::Interpretation) = ByteOfWord { w :: Word8 }
 --data MemAddr (i::Interpretation) = MemAddrOfBytePair { _lo :: Word8, _hi :: Word8  }
 
 data Asm :: Generation -> Generation -> Type -> Type where
   Pure :: a -> Asm g g a
   Bind :: Asm f g a -> (a -> Asm g h b) -> Asm f h b
-  AllocZP :: Asm ('Gen ('Seq i zp) mem) ('Gen zp mem) (Byte ('ZpAddr i))
+  AllocZP :: Asm ('Gen ('Seq i zp) mem) ('Gen zp mem) (Byte ('ZpAddr ('Seq i zp)))
   --Label :: Asm g h (MemAddr i)
   Emit :: Byte i -> Asm ('Gen zp ('Seq i mem)) ('Gen zp mem) ()
 
