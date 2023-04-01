@@ -28,8 +28,8 @@ type LDA_z = forall a x y o zp.
 type STA_z = forall a x y zp.
   Byte ('Code ('Cpu a x y) ('ArgB ('ZpAddr ('Seq a zp))) ('Cpu a x y))
 
-type STA_a = forall a x y is.
-  Byte ('Code ('Cpu a x y) ('ArgA ('Seq a is)) ('Cpu a x y))
+type STA_a = forall a x y.
+  Byte ('Code ('Cpu a x y) ('ArgA a) ('Cpu a x y))
 
 type TAX = forall a x y.
   Byte ('Code ('Cpu a x y) ('NoArg) ('Cpu a a y))
@@ -82,6 +82,10 @@ op2
                     ('Seq ('Code d op e) m))
          ()
 
+equb
+  :: Byte i1 -> Asm ('Gen z ('Seq i1 ('Seq i2 m)))
+                     ('Gen z          ('Seq i2 m)) ()
+
 --[imp]-------------------------------------------------------------
 
 pure = return
@@ -91,22 +95,23 @@ return = Pure
 op0 code = Emit code
 op1 code b = do Emit code; Emit b
 op2 code MemAddrOfBytePair{lo,hi} = do Emit code; Emit lo; Emit hi
+equb b = Emit b
 
 data Interpretation
   = ZpAddr SeqInterpretation
   | Code CpuState Op CpuState
   | Data Type
-  | LoByteOfAddr SeqInterpretation
-  | HiByteOfAddr SeqInterpretation
+  | LoByteOfAddr Interpretation
+  | HiByteOfAddr Interpretation
 
 data Op
   = NoArg
   | ArgB { _byte :: Interpretation }
-  | ArgA { _addr :: SeqInterpretation }
+  | ArgA { _addr :: Interpretation }
 
 data Byte (i::Interpretation) = ByteOfWord { w :: Word8 }
 
-data MemAddr (i::SeqInterpretation) =
+data MemAddr (i::Interpretation) =
   MemAddrOfBytePair { lo :: Byte ('LoByteOfAddr i)
                     , hi :: Byte ('HiByteOfAddr i)
                     }
@@ -115,7 +120,7 @@ data Asm :: Generation -> Generation -> Type -> Type where
   Pure :: a -> Asm g g a
   Bind :: Asm f g a -> (a -> Asm g h b) -> Asm f h b
   AllocZP :: Asm ('Gen ('Seq i zp) mem) ('Gen zp mem) (Byte ('ZpAddr ('Seq i zp)))
-  Label :: Asm ('Gen zp mem) ('Gen zp mem) (MemAddr mem)
+  Label :: Asm ('Gen zp ('Seq a mem)) ('Gen zp ('Seq a mem)) (MemAddr a)
   Emit :: Byte i -> Asm ('Gen zp ('Seq i mem)) ('Gen zp mem) ()
 
 data CpuState = Cpu { _a :: Interpretation

@@ -18,11 +18,15 @@ zpType :: Byte ('ZpAddr ('Seq i is)) -> Byte i
 zpType = undefined
 
 
-main c1 = eff $ do
-  --c2 <- Label
+main = eff $ do
+  d1 <- Label
+  equb (immChar 'a')
+
+  c1 <- Label
   lda_i (immChar 'x')
-  sta_a c1
-  pure c1
+  sta_a d1
+  -- sta_a c1 --type error NICE
+  pure (c1,d1)
 
 
 _frag2 = eff $ do
