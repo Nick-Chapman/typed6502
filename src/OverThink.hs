@@ -12,7 +12,8 @@ import Data.ByteString.Internal (c2w)
 
 -- TODO: need corrrect op codes
 
-jmp = op2 (ByteOfWord 0xff) -- TODO: refine type
+jmp (arg::MemAddr ('Code c d)) =
+  op2tx (ByteOfWord 0x4c :: Byte ('Code c d)) arg
 
 lda_i (arg::Byte a)                     = op1 (ByteOfWord 0xa9 :: LDA a) arg
 lda_z (arg::Byte ('ZpAddr ('Seq a zp))) = op1 (ByteOfWord 0xa5 :: LDA a) arg
@@ -80,6 +81,18 @@ op2
                     ('Seq ('Code d e) m))
          ()
 
+-- for instructions which transfer control (jmp,jsr)
+-- the type is weaker because there is no fallthrough
+op2tx
+  :: Byte ('Code c d)
+  -> MemAddr a
+  -> Asm ('Gen z ('Seq ('Code c d)
+                  ('Seq ('LoByteOfAddr a)
+                   ('Seq ('HiByteOfAddr a)
+                    m))))
+         ('Gen z m)
+         ()
+
 equb
   :: Byte i1 -> Asm ('Gen z ('Seq i1 ('Seq i2 m)))
                      ('Gen z          ('Seq i2 m)) ()
@@ -93,7 +106,8 @@ return = Pure
 op0 code = Emit code
 dep_op1 code b = do Emit code; Emit b
 op1 code b = do Emit code; Emit b
-op2 code MemAddrOfBytePair{lo,hi} = do Emit code; Emit lo; Emit hi
+op2 = op2tx
+op2tx code MemAddrOfBytePair{lo,hi} = do Emit code; Emit lo; Emit hi
 equb b = Emit b
 
 data Interpretation
