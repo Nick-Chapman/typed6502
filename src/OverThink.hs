@@ -10,35 +10,33 @@ import Data.ByteString.Internal (c2w)
 
 --[ops] --------------------------------------------------------------------
 
-lda_i = op1 (ByteOfWord 0xa9 :: LDA_i)
-lda_z = op1 (ByteOfWord 0xa5 :: LDA_z)
-tax =   op0 (ByteOfWord 0xaa :: TAX)
 -- TODO: need corrrect op codes
-tay =   op0 (ByteOfWord 0xff :: TAY)
-txa =   op0 (ByteOfWord 0xff :: TXA)
-sta_z = op1 (ByteOfWord 0xff :: STA_z)
-sta_a = op2 (ByteOfWord 0xff :: STA_a)
 
-type LDA_i = forall a x y o.
-  Byte ('Code ('Cpu o x y) ('ArgB a) ('Cpu a x y))
+jmp = op2 (ByteOfWord 0xff) -- TODO: refine type
 
-type LDA_z = forall a x y o zp.
-  Byte ('Code ('Cpu o x y) ('ArgB ('ZpAddr ('Seq a zp))) ('Cpu a x y))
+lda_i (arg::Byte a)                     = op1 (ByteOfWord 0xa9 :: LDA a) arg
+lda_z (arg::Byte ('ZpAddr ('Seq a zp))) = op1 (ByteOfWord 0xa5 :: LDA a) arg
+sta_a (arg::MemAddr a)                  = op2 (ByteOfWord 0xff :: STA a) arg
+sta_z (arg::Byte ('ZpAddr ('Seq a zp))) = op1 (ByteOfWord 0xff :: STA a) arg
+tax                                     = op0 (ByteOfWord 0xaa :: TAX)
+tay                                     = op0 (ByteOfWord 0xff :: TAY)
+txa                                     = op0 (ByteOfWord 0xff :: TXA)
 
-type STA_z = forall a x y zp.
-  Byte ('Code ('Cpu a x y) ('ArgB ('ZpAddr ('Seq a zp))) ('Cpu a x y))
+type LDA a = forall x y o.
+  Byte ('Code ('Cpu o x y) ('Cpu a x y))
 
-type STA_a = forall a x y.
-  Byte ('Code ('Cpu a x y) ('ArgA a) ('Cpu a x y))
+type STA a = forall x y.
+  Byte ('Code ('Cpu a x y) ('Cpu a x y))
 
 type TAX = forall a x y.
-  Byte ('Code ('Cpu a x y) ('NoArg) ('Cpu a a y))
+  Byte ('Code ('Cpu a x y) ('Cpu a a y))
 
 type TAY = forall a x y.
-  Byte ('Code ('Cpu a x y) ('NoArg) ('Cpu a x a))
+  Byte ('Code ('Cpu a x y) ('Cpu a x a))
 
 type TXA = forall a x y.
-  Byte ('Code ('Cpu a x y) ('NoArg) ('Cpu x x y))
+  Byte ('Code ('Cpu a x y) ('Cpu x x y))
+
 
 --[immediates] ----------------------------------------------------------------
 
@@ -59,27 +57,27 @@ return :: v -> Asm g g v
 (>>=) :: Asm f g v -> (v -> Asm g h w) -> Asm f h w
 
 op0
-  :: Byte ('Code c 'NoArg d)
-  -> Asm ('Gen z ('Seq ('Code c 'NoArg d) ('Seq ('Code d op e) m)))
-         ('Gen z ('Seq                        ('Code d op e) m))
+  :: Byte ('Code c d)
+  -> Asm ('Gen z ('Seq ('Code c d) ('Seq ('Code d e) m)))
+         ('Gen z ('Seq                   ('Code d e) m))
          ()
 
 op1
-  :: Byte ('Code c ('ArgB a) d)
+  :: Byte ('Code c d)
   -> Byte a
-  -> Asm ('Gen z ('Seq ('Code c ('ArgB a) d) ('Seq a ('Seq ('Code d op e) m))))
-         ('Gen z ('Seq                                    ('Code d op e) m))
+  -> Asm ('Gen z ('Seq ('Code c d) ('Seq a ('Seq ('Code d e) m))))
+         ('Gen z ('Seq                           ('Code d e) m))
          ()
 
 op2
-  :: Byte ('Code c ('ArgA is) d)
-  -> MemAddr is
-  -> Asm ('Gen z ('Seq ('Code c ('ArgA is) d)
-                  ('Seq ('LoByteOfAddr is)
-                   ('Seq ('HiByteOfAddr is)
-                    ('Seq ('Code d op e) m)))))
+  :: Byte ('Code c d)
+  -> MemAddr a
+  -> Asm ('Gen z ('Seq ('Code c d)
+                  ('Seq ('LoByteOfAddr a)
+                   ('Seq ('HiByteOfAddr a)
+                    ('Seq ('Code d e) m)))))
          ('Gen z
-                    ('Seq ('Code d op e) m))
+                    ('Seq ('Code d e) m))
          ()
 
 equb
@@ -93,21 +91,17 @@ return = Pure
 (>>) a1 a2 = Bind a1 (\() -> a2)
 (>>=) = Bind
 op0 code = Emit code
+dep_op1 code b = do Emit code; Emit b
 op1 code b = do Emit code; Emit b
 op2 code MemAddrOfBytePair{lo,hi} = do Emit code; Emit lo; Emit hi
 equb b = Emit b
 
 data Interpretation
   = ZpAddr SeqInterpretation
-  | Code CpuState Op CpuState
+  | Code CpuState CpuState
   | Data Type
   | LoByteOfAddr Interpretation
   | HiByteOfAddr Interpretation
-
-data Op
-  = NoArg
-  | ArgB { _byte :: Interpretation }
-  | ArgA { _addr :: Interpretation }
 
 data Byte (i::Interpretation) = ByteOfWord { w :: Word8 }
 

@@ -10,7 +10,7 @@ import OverThink
 _w :: Word8 -- so the import is not redundant
 _w = undefined
 
-eff :: Asm g ('Gen z ('Seq ('Code cpu op cpu2) h)) v -> Effect cpu v
+eff :: Asm g ('Gen z ('Seq ('Code cpu cpu2) h)) v -> Effect cpu v
 eff = undefined
 data Effect (cpu :: CpuState) v
 
@@ -19,13 +19,19 @@ zpType = undefined
 
 
 main = eff $ do
+  c1 <- Label
+  --lda_i (immChar 'x')
+  jmp c1
+  pure c1
+
+_frag3 = eff $ do
   d1 <- Label
   equb (immChar 'a')
 
   c1 <- Label
   lda_i (immChar 'x')
   sta_a d1
-  -- sta_a c1 --type error NICE
+  --sta_a c1 --type error NICE
   pure (c1,d1)
 
 
@@ -36,7 +42,7 @@ _frag2 = eff $ do
   sta_z v1
   lda_i (immWord 123)
   sta_z (nextZ v1) -- show access to subsequent addresses
-  -- sta_z v1 -- type error NICE
+  --sta_z v1 -- type error NICE
   pure (zpType v2)
 
 
