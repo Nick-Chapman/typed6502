@@ -39,13 +39,18 @@ type TXA = forall a x y.
   Byte ('Code ('Cpu a x y) ('Cpu x x y))
 
 
---[immediates] ----------------------------------------------------------------
+--[bytes]----------------------------------------------------------------
 
-immChar :: Char -> Byte ('Data Char)
-immChar c = ByteOfWord (c2w c)
+class DataByte t where byte :: t -> Byte ('Data t)
 
-immWord :: Word8 -> Byte ('Data Word8)
-immWord w = ByteOfWord w
+instance DataByte Char where byte = byteChar
+instance DataByte Word8 where byte = byteWord
+
+byteChar :: Char -> Byte ('Data Char)
+byteChar c = ByteOfWord (c2w c)
+
+byteWord :: Word8 -> Byte ('Data Word8)
+byteWord w = ByteOfWord w
 
 nextZ :: Byte ('ZpAddr ('Seq i is)) -> Byte ('ZpAddr is)
 nextZ ByteOfWord{w} = ByteOfWord (w + 1)

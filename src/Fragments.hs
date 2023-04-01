@@ -19,19 +19,19 @@ zpType = undefined
 
 main = eff $ do
   d1 <- Label
-  equb (immChar 'd')
+  equb (byte 'd')
   c1 <- Label
-  --lda_i (immChar 'i') -- do something in loop ok
+  --lda_i (byte 'i') -- do something in loop ok
   jmp c1
   --jmp d1 -- type error NICE
-  equb (immChar 'd') -- data after jump ok
+  equb (byte 'd') -- data after jump ok
   pure (c1,d1)
 
 _frag3 = eff $ do
   d1 <- Label
-  equb (immChar 'd')
+  equb (byte 'd')
   c1 <- Label
-  lda_i (immChar 'i')
+  lda_i (byte 'i')
   sta_a d1
   --sta_a c1 --type error NICE
   pure (c1,d1)
@@ -40,9 +40,9 @@ _frag3 = eff $ do
 _frag2 = eff $ do
   v1 <- AllocZP
   v2 <- AllocZP
-  lda_i (immChar 'i')
+  lda_i (byte 'i')
   sta_z v1
-  lda_i (immWord 123)
+  lda_i (byte @Word8 123)
   sta_z (nextZ v1) -- show access to subsequent addresses
   --sta_z v1 -- type error NICE
   pure (zpType v2)
@@ -50,9 +50,9 @@ _frag2 = eff $ do
 
 _frag1 = eff $ do -- from from original Asm
   v <- AllocZP
-  lda_i (immChar 'i')
+  lda_i (byte 'i')
   sta_z v
-  --lda_i (immWord 11) -- type error NICE
+  --lda_i (byte @Word8 11) -- type error NICE
   sta_z v
 
 
