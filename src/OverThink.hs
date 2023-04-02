@@ -12,6 +12,24 @@ import Data.ByteString.Internal (c2w)
 
 -- TODO: need corrrect op codes
 
+--jsr (arg::MemAddr ('Code c d)) =
+--  op2tx (ByteOfWord 0x4c :: JSR c d) arg
+
+
+--jsr (arg::MemAddr a) =
+--  op2tx (ByteOfWord 0x20 :: JSR) arg
+
+--type JSR = forall a x y s c d.
+--  Byte ('Code ('Cpu a x y s) ('Cpu a x y ('RetAddr c d s)))
+
+
+
+rts = op0tx (ByteOfWord 0x60 :: RTS)
+
+type RTS = forall a x y c d s.
+  Byte ('Code ('Cpu a x y ('RetAddr c d s)) ('Cpu a x y s))
+
+
 jmp (arg::MemAddr ('Code c d)) =
   op2tx (ByteOfWord 0x4c :: Byte ('Code c d)) arg
 
@@ -23,20 +41,20 @@ tax                                     = op0 (ByteOfWord 0xaa :: TAX)
 tay                                     = op0 (ByteOfWord 0xff :: TAY)
 txa                                     = op0 (ByteOfWord 0xff :: TXA)
 
-type LDA a = forall x y o.
-  Byte ('Code ('Cpu o x y) ('Cpu a x y))
+type LDA a = forall x y s o.
+  Byte ('Code ('Cpu o x y s) ('Cpu a x y s))
 
-type STA a = forall x y.
-  Byte ('Code ('Cpu a x y) ('Cpu a x y))
+type STA a = forall x y s.
+  Byte ('Code ('Cpu a x y s) ('Cpu a x y s))
 
-type TAX = forall a x y.
-  Byte ('Code ('Cpu a x y) ('Cpu a a y))
+type TAX = forall a x y s.
+  Byte ('Code ('Cpu a x y s) ('Cpu a a y s))
 
-type TAY = forall a x y.
-  Byte ('Code ('Cpu a x y) ('Cpu a x a))
+type TAY = forall a x y s.
+  Byte ('Code ('Cpu a x y s) ('Cpu a x a s))
 
-type TXA = forall a x y.
-  Byte ('Code ('Cpu a x y) ('Cpu x x y))
+type TXA = forall a x y s.
+  Byte ('Code ('Cpu a x y s) ('Cpu x x y s))
 
 
 --[bytes]----------------------------------------------------------------
@@ -65,42 +83,47 @@ return :: v -> Asm g g v
 op0
   :: Byte ('Code c d)
   -> Asm ('Gen z ('Seq ('Code c d) ('Seq ('Code d e) m)))
-         ('Gen z ('Seq                   ('Code d e) m))
+         ('Gen z                   ('Seq ('Code d e) m))
          ()
 
 op1
   :: Byte ('Code c d)
-  -> Byte a
-  -> Asm ('Gen z ('Seq ('Code c d) ('Seq a ('Seq ('Code d e) m))))
-         ('Gen z ('Seq                           ('Code d e) m))
+  -> Byte i
+  -> Asm ('Gen z ('Seq ('Code c d) ('Seq i ('Seq ('Code d e) m))))
+         ('Gen z                           ('Seq ('Code d e) m))
          ()
 
 op2
   :: Byte ('Code c d)
-  -> MemAddr a
+  -> MemAddr i
   -> Asm ('Gen z ('Seq ('Code c d)
-                  ('Seq ('LoByteOfAddr a)
-                   ('Seq ('HiByteOfAddr a)
-                    ('Seq ('Code d e) m)))))
-         ('Gen z
-                    ('Seq ('Code d e) m))
+                  ('Seq ('LoByteOfAddr i)
+                   ('Seq ('HiByteOfAddr i)
+                                                ('Seq ('Code d e) m)))))
+         ('Gen z                                ('Seq ('Code d e) m))
          ()
 
--- for instructions which transfer control (jmp,jsr)
+-- for instructions which transfer control (jmp,jsr,rts)
 -- the type is weaker because there is no fallthrough
+
+op0tx
+  :: Byte ('Code c d)
+  -> Asm ('Gen z ('Seq ('Code c d) m))
+         ('Gen z                   m)
+         ()
+
 op2tx
   :: Byte ('Code c d)
-  -> MemAddr a
+  -> MemAddr i
   -> Asm ('Gen z ('Seq ('Code c d)
-                  ('Seq ('LoByteOfAddr a)
-                   ('Seq ('HiByteOfAddr a)
-                    m))))
-         ('Gen z m)
+                  ('Seq ('LoByteOfAddr i)
+                   ('Seq ('HiByteOfAddr i)      m))))
+         ('Gen z                                m)
          ()
 
 equb
-  :: Byte i1 -> Asm ('Gen z ('Seq i1 ('Seq i2 m)))
-                     ('Gen z          ('Seq i2 m)) ()
+  :: Byte i -> Asm ('Gen z ('Seq i m))
+                   ('Gen z         m) ()
 
 --[imp]-------------------------------------------------------------
 
@@ -108,6 +131,7 @@ pure = return
 return = Pure
 (>>) a1 a2 = Bind a1 (\() -> a2)
 (>>=) = Bind
+op0tx code = Emit code
 op0 code = Emit code
 dep_op1 code b = do Emit code; Emit b
 op1 code b = do Emit code; Emit b
@@ -139,7 +163,11 @@ data Asm :: Generation -> Generation -> Type -> Type where
 data CpuState = Cpu { _a :: Interpretation
                     , _x :: Interpretation
                     , _y :: Interpretation
+                    , _s :: Stack
                     }
+
+data Stack
+  = RetAddr CpuState CpuState Stack
 
 data Generation = Gen { _zp :: SeqInterpretation
                       , _mem :: SeqInterpretation
