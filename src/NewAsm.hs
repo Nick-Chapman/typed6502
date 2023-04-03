@@ -1,7 +1,7 @@
+{-# OPTIONS -Wno-unticked-promoted-constructors #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ImpredicativeTypes #-}
-{-# OPTIONS -Wno-unticked-promoted-constructors #-}
+
 {-# OPTIONS -Wno-missing-signatures #-}
 
 module NewAsm where
@@ -11,72 +11,56 @@ import Data.Word (Word8)
 import Prelude hiding (return,pure,(>>=),(>>))
 import Data.ByteString.Internal (c2w)
 
-main = do
-  rts ; rts -- ok
-  --nop ; nop -- Totally bust  :(
+--main :: Final (Cpu (Data Word8) (Data Char) y s) ()
+main = final $ do
+  v1 <- AllocZP
+  v2 <- AllocZP
+  lda_i (byte 'x')
+  sta_z v1
+  tax
+  lda_i (byte @Word8 12)
+  sta_z v2
+  pure (v1,v2)
+
+final :: Asm g (Gen z (Seq (Code cpu) h)) v -> Final cpu v
+final = undefined
+data Final (cpu :: CpuState) v
 
 ----------------------------------------------------------------------
 
-equb = Emit
+lda_m = (opA :: LDA_m) (Byte 0xad)
+sta_m = (opA :: STA_m) (Byte 0x8d)
+--lda_i = (opB :: LDA_i) (Byte 0xa9)
+lda_i = (opB :: OpB (Cpu o x y s) (Cpu a x y s) a) (Byte 0xa9) -- example inlined def
+sta_z = (opB :: STA_z) (Byte 0x85)
+lda_z = (opB :: LDA_z) (Byte 0xa9)
 
-----------------------------------------------------------------------
-
-class DataByte t where byte :: t -> Byte ('Data t)
-
-instance DataByte Char where byte = byteChar
-instance DataByte Word8 where byte = byteWord
-
-byteChar :: Char -> Byte (Data Char)
-byteChar c = Byte (c2w c)
-
-byteWord :: Word8 -> Byte (Data Word8)
-byteWord = Byte
-
-nextZ :: Byte (ZpAddr (Seq i is)) -> Byte (ZpAddr is)
-nextZ Byte{w} = Byte (w + 1)
-
-----------------------------------------------------------------------
-
-nop = (op0 :: Implied NOP) (Byte undefined)
-pha = (op0 :: Implied PHA) (Byte 0x48)
-pla = (op0 :: Implied PLA) (Byte 0x68)
-tax = (op0 :: Implied TAX) (Byte 0xaa)
-txa = (op0 :: Implied TXA) (Byte undefined)
-
-lda_i = (opB :: Immediate a (LDA a)) (Byte 0xa9)
-lda_z = (opB :: ZeroPage  a (LDA a)) (Byte 0xa5)
-lda_m = (opA :: Absolute  a (LDA a)) (Byte 0xad)
-
-sta_z = (opB :: ZeroPage  a (STA a)) (Byte 0x85)
-sta_m = (opA :: Absolute  a (STA a)) (Byte 0x8d)
+nop = (op0 :: NOP) (Byte undefined)
+pha = (op0 :: PHA) (Byte 0x48)
+pla = (op0 :: PLA) (Byte 0x68)
+tax = (op0 :: TAX) (Byte 0xaa)
+txa = (op0 :: TXA) (Byte undefined)
 
 jmp = (opA :: JMP) (Byte 0x4c)
 jsr = (opA :: JSR) (Byte undefined)
 rts = (op0 :: RTS) (Byte 0x60)
 
-
 ----------------------------------------------------------------------
 
-type LDA :: Interpretation -> Effect
-type STA :: Interpretation -> Effect
-type TAX :: Effect
-type TXA :: Effect
-type PHA :: Effect
-type PLA :: Effect
-type NOP :: Effect
+-- These could be inlined, saving writing the forall...
 
-type JMP :: Type
-type RTS :: Type
-type JSR :: Type
+type NOP = forall a x y s. Op0 (Cpu a x y s) (Cpu a x y s)
+type PHA = forall a x y s. Op0 (Cpu a x y s) (Cpu a x y (UserData a s))
+type PLA = forall a x y s. Op0 (Cpu a x y (UserData a s)) (Cpu a x y s)
+type TAX = forall a x y s. Op0 (Cpu a x y s) (Cpu a a y s)
+type TXA = forall a x y s. Op0 (Cpu a x y s) (Cpu x x y s)
 
-type LDA a = forall a x y s o. '( Cpu o x y s, Cpu a x y s)
-type STA a = forall a x y s.   '( Cpu a x y s, Cpu a x y s)
+type LDA_i = forall a x y s o. OpB (Cpu o x y s) (Cpu a x y s) a
+type LDA_z = forall a x y s o. OpZ (Cpu o x y s) (Cpu a x y s) a
+type LDA_m = forall a x y s o. OpA (Cpu o x y s) (Cpu a x y s) a
 
-type NOP = forall a x y s. '( Cpu a x y s, Cpu a x y s)
-type PHA = forall a x y s. '( Cpu a x y s, Cpu a x y (UserData a s))
-type PLA = forall a x y s. '( Cpu a x y (UserData a s), Cpu a x y s)
-type TAX = forall a x y s. '( Cpu a x y s, Cpu a a y s)
-type TXA = forall a x y s. '( Cpu a x y s, Cpu x x y s)
+type STA_z = forall a x y s.   OpZ (Cpu a x y s) (Cpu a x y s) a
+type STA_m = forall a x y s.   OpA (Cpu a x y s) (Cpu a x y s) a
 
 type JMP = forall c. TransferA c
 type RTS = forall a x y s. Transfer0 (Cpu a x y (RetAddr (Cpu a x y s) s))
@@ -85,36 +69,12 @@ type JSR = forall a1 x1 y1 a2 x2 y2 s.
   OpA (Cpu a1 x1 y1 s) (Cpu a2 x2 y2 s)
   (Code (Cpu a1 x1 y1 (RetAddr (Cpu a2 x2 y2 s) s)))
 
-
 ----------------------------------------------------------------------
 
-type Implied :: Mode
-type Immediate :: Mode1
-type Absolute :: Mode1
-type ZeroPage :: Mode1
+type OpZ :: CpuState -> CpuState -> Interpretation -> Type
+type OpZ c d i = forall is.
+  OpB c d (ZpAddr (Seq i is))
 
-type Mode1 = Interpretation -> Mode
-type Mode = Effect -> Type
-
-type Effect = (CpuState,CpuState)
-
-----------------------------------------------------------------------
-
-type Implied eff = Op0 (Pre eff) (Post eff)
-
-type ZeroPage i eff = forall is. Immediate (ZpAddr (Seq i is)) eff
-type Immediate i eff = OpB (Pre eff) (Post eff) i
-type Absolute i eff = OpA (Pre eff) (Post eff) i
-
-type Pre :: Effect -> CpuState
-type family Pre e where
-  Pre '(c,d) = c
-
-type Post :: Effect -> CpuState
-type family Post e where
-  Post '(c,d) = c
-
-----------------------------------------------------------------------
 
 type Op0 :: CpuState -> CpuState -> Type
 type Op0 c d = forall z m.
@@ -162,6 +122,21 @@ type TransferA c = forall z m is.
       (Gen z                                           m)
       ()
 
+----------------------------------------------------------------------
+
+class DataByte t where byte :: t -> Byte ('Data t)
+
+instance DataByte Char where byte = byteChar
+instance DataByte Word8 where byte = byteWord
+
+byteChar :: Char -> Byte (Data Char)
+byteChar c = Byte (c2w c)
+
+byteWord :: Word8 -> Byte (Data Word8)
+byteWord = Byte
+
+nextZ :: Byte (ZpAddr (Seq i is)) -> Byte (ZpAddr is)
+nextZ Byte{w} = Byte (w + 1)
 
 ----------------------------------------------------------------------
 
@@ -172,6 +147,7 @@ return = Pure
 op0 = Emit
 opB code b = do Emit code; Emit b
 opA code Addr{lo,hi} = do Emit code; Emit lo; Emit hi
+equb = Emit
 
 ----------------------------------------------------------------------
 

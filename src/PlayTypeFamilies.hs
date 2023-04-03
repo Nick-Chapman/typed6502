@@ -1,4 +1,5 @@
 {-# OPTIONS -Wno-unticked-promoted-constructors #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 
 module PlayTypeFamilies where
 
