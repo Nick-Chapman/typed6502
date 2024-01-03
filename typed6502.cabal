@@ -1,0 +1,131 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           typed6502
+version:        0.1.0.0
+description:    Report 6502 assembly programming mistakes as type errors.
+homepage:       https://github.com/Nick-Chapman/typed6502.git#readme
+bug-reports:    https://github.com/Nick-Chapman/typed6502.git/issues
+author:         Nick Chapman
+maintainer:     nic@amadido.co.uk
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/Nick-Chapman/typed6502.git
+
+library
+  exposed-modules:
+      Asm
+      Assemble
+      Effect
+      Fragments
+      NewAsm
+      OverThink
+      PlayTypeFamilies
+      Think
+      ThinkAgain
+      Top
+      Bf
+      CharX
+      Frame
+      Goodbye
+      Greetings
+      Hello
+  other-modules:
+      Paths_typed6502
+  hs-source-dirs:
+      src
+      example
+  default-extensions:
+      BangPatterns
+      DataKinds
+      DuplicateRecordFields
+      EmptyCase
+      FlexibleContexts
+      GADTs
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      NondecreasingIndentation
+      NumericUnderscores
+      QualifiedDo
+      RankNTypes
+      RecursiveDo
+      ScopedTypeVariables
+      TypeApplications
+      TypeFamilies
+      UndecidableInstances
+  ghc-options: -Werror -Wall -Wno-name-shadowing
+  build-depends:
+      EarleyM
+    , ansi-terminal
+    , array
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , clock
+    , containers
+    , extra
+    , haskeline
+    , mtl
+    , split
+    , text
+    , time
+    , transformers
+    , word8
+  default-language: Haskell2010
+
+executable main.exe
+  main-is: app/main.hs
+  other-modules:
+      Paths_typed6502
+  default-extensions:
+      BangPatterns
+      DataKinds
+      DuplicateRecordFields
+      EmptyCase
+      FlexibleContexts
+      GADTs
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      NondecreasingIndentation
+      NumericUnderscores
+      QualifiedDo
+      RankNTypes
+      RecursiveDo
+      ScopedTypeVariables
+      TypeApplications
+      TypeFamilies
+      UndecidableInstances
+  ghc-options: -Werror -Wall -Wno-name-shadowing
+  build-depends:
+      EarleyM
+    , ansi-terminal
+    , array
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , clock
+    , containers
+    , extra
+    , haskeline
+    , mtl
+    , split
+    , text
+    , time
+    , transformers
+    , typed6502
+    , word8
+  default-language: Haskell2010
